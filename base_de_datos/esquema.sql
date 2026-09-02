@@ -42,6 +42,19 @@ CREATE TABLE IF NOT EXISTS hitos_historia (
   fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Contenido comercial visible al inicio de la web.
+CREATE TABLE IF NOT EXISTS banners_publicitarios (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  titulo TEXT NOT NULL,
+  descripcion TEXT,
+  texto_boton TEXT,
+  enlace TEXT,
+  imagen_url TEXT,
+  activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1)),
+  fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fecha_actualizacion TEXT
+);
+
 CREATE TABLE IF NOT EXISTS productos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   codigo TEXT NOT NULL UNIQUE,

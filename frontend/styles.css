@@ -83,6 +83,22 @@ input:focus,select:focus,textarea:focus { outline:2px solid #73c76a; outline-off
 footer { background:var(--forest-deep); }
 .whatsapp-float { background:#25d366; box-shadow:0 10px 28px #09281b66; }
 
+/* Carrusel de campañas del inicio. */
+.promo-carousel { position:relative; background:var(--forest-deep); overflow:hidden; }
+.banner-slide { min-height:395px; padding:72px 12%; display:flex; align-items:center; background:linear-gradient(115deg,#09281b,#164b32); background-size:cover; background-position:center; animation:banner-enter .45s ease; }
+.banner-slide > div { max-width:620px; color:#fff; }
+.banner-slide .eyebrow { color:#a8df87; }
+.banner-slide h2 { font-size:clamp(2.15rem,4.5vw,4.2rem); line-height:1.03; margin:8px 0 17px; color:#fff; }
+.banner-slide p:not(.eyebrow) { max-width:540px; font-size:1.08rem; margin-bottom:25px; }
+.banner-action { background:#a8df87; color:#09281b; }
+.banner-controls { position:absolute; left:50%; bottom:24px; transform:translateX(-50%); display:flex; align-items:center; gap:15px; }
+.banner-controls > button { width:34px; height:34px; border:1px solid #ffffff66; background:#ffffff1a; border-radius:50%; color:#fff; font-size:1.7rem; line-height:1; cursor:pointer; }
+.banner-controls > button:hover { background:#fff; color:#09281b; }
+.banner-dots { display:flex; gap:8px; }
+.banner-dot { width:8px; height:8px; padding:0; border:0; border-radius:50%; background:#ffffff88; cursor:pointer; }
+.banner-dot.active { width:28px; border-radius:8px; background:#a8df87; }
+@keyframes banner-enter { from { opacity:.2; transform:scale(1.015); } to { opacity:1; transform:scale(1); } }
+
 /* Animación discreta al recorrer el contenido. */
 .section:not(.hero) { opacity:0; transform:translateY(26px); transition:opacity .65s ease,transform .65s ease; }
 .section:not(.hero).is-visible { opacity:1; transform:none; }
@@ -105,6 +121,10 @@ footer { background:var(--forest-deep); }
   .public-header .session-dropdown { left:0; right:auto; top:48px; min-width:175px; }
   .public-header .session-dropdown a { color:var(--ink); }
   .product-card,.product-card .product-photo,.product-card .product-icon { min-height:365px; }
+  .banner-slide { min-height:370px; padding:58px 8% 78px; background-position:center; }
+  .banner-slide h2 { font-size:2.4rem; }
+  .banner-slide p:not(.eyebrow) { font-size:1rem; }
+  .banner-controls { bottom:20px; }
 }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; scroll-behavior:auto!important; } .section:not(.hero) { opacity:1; transform:none; } }
 
