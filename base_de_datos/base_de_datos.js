@@ -1,0 +1,120 @@
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { DatabaseSync } = require('node:sqlite');
+
+const database = new DatabaseSync(path.join(__dirname, 'mvp_catalogo.db'));
+database.exec('PRAGMA foreign_keys = ON;');
+database.exec(fs.readFileSync(path.join(__dirname, 'esquema.sql'), 'utf8'));
+// Mantiene compatible la base de datos que ya se creó antes de estos campos.
+['departamento', 'provincia', 'distrito'].forEach((column) => {
+  try { database.exec(`ALTER TABLE clientes ADD COLUMN ${column} TEXT`); } catch { /* La columna ya existe. */ }
+});
+try { database.exec('ALTER TABLE usuarios ADD COLUMN requiere_cambio_contrasena INTEGER NOT NULL DEFAULT 0'); } catch { /* La columna ya existe. */ }
+try { database.exec('ALTER TABLE configuracion_empresa ADD COLUMN clientes_historicos INTEGER NOT NULL DEFAULT 0'); } catch { /* La columna ya existe. */ }
+
+function nextCode(prefix, table) {
+  const rows = database.prepare(`SELECT codigo FROM ${table}`).all();
+  const highest = rows.reduce((max, row) => Math.max(max, Number(String(row.codigo).split('-')[1]) || 0), 0);
+  return `${prefix}-${String(highest + 1).padStart(4, '0')}`;
+}
+
+function getOrCreateCategory(name) {
+  const current = database.prepare('SELECT id FROM categorias_producto WHERE nombre = ?').get(name);
+  if (current) return current.id;
+  return Number(database.prepare('INSERT INTO categorias_producto (nombre) VALUES (?)').run(name).lastInsertRowid);
+}
+
+function getDefaultUnit() {
+  const current = database.prepare("SELECT id FROM unidades_medida WHERE abreviatura = 'sac' AND activo = 1").get();
+  if (current) return current.id;
+  return Number(database.prepare("INSERT INTO unidades_medida (nombre, abreviatura) VALUES ('Sacos', 'sac')").run().lastInsertRowid);
+}
+function configureOrderUnits() {
+  const units = [['Sacos', 'sac'], ['Cajas', 'caj'], ['Paquetes', 'paq']];
+  database.prepare("UPDATE unidades_medida SET activo = 0 WHERE abreviatura NOT IN ('sac', 'caj', 'paq')").run();
+  units.forEach(([name, abbreviation]) => {
+    const current = database.prepare('SELECT id FROM unidades_medida WHERE abreviatura = ?').get(abbreviation);
+    if (current) database.prepare('UPDATE unidades_medida SET nombre = ?, activo = 1 WHERE id = ?').run(name, current.id);
+    else database.prepare('INSERT INTO unidades_medida (nombre, abreviatura) VALUES (?, ?)').run(name, abbreviation);
+  });
+}
+function listUnits() { return database.prepare('SELECT nombre AS name, abreviatura AS abbreviation FROM unidades_medida WHERE activo = 1 ORDER BY nombre').all(); }
+function getUnitByAbbreviation(abbreviation) { const unit = database.prepare('SELECT id FROM unidades_medida WHERE abreviatura = ? AND activo = 1').get(abbreviation); if (!unit) throw new Error('Selecciona una unidad de medida válida.'); return unit.id; }
+function getCompanySettings() { return database.prepare('SELECT numero_whatsapp AS whatsappNumber, clientes_historicos AS historicalClients FROM configuracion_empresa WHERE id = 1').get() || { whatsappNumber: '', historicalClients: 0 }; }
+function updateWhatsAppNumber(number) { database.prepare("INSERT INTO configuracion_empresa (id, numero_whatsapp, fecha_actualizacion) VALUES (1, ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET numero_whatsapp = excluded.numero_whatsapp, fecha_actualizacion = CURRENT_TIMESTAMP").run(number); return getCompanySettings(); }
+function updateHistoricalClients(value) { database.prepare("INSERT INTO configuracion_empresa (id, clientes_historicos, fecha_actualizacion) VALUES (1, ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET clientes_historicos = excluded.clientes_historicos, fecha_actualizacion = CURRENT_TIMESTAMP").run(Number(value)); return getCompanySettings(); }
+function listAdditionalKpis() { return database.prepare('SELECT id, titulo AS title, valor AS value, descripcion AS description FROM kpis_adicionales WHERE activo = 1 ORDER BY id').all(); }
+function createAdditionalKpi(data) { const id = Number(database.prepare('INSERT INTO kpis_adicionales (titulo, valor, descripcion) VALUES (?, ?, ?)').run(data.title, data.value, data.description || null).lastInsertRowid); return listAdditionalKpis().find((item) => item.id === id); }
+function deleteAdditionalKpi(id) { return database.prepare('UPDATE kpis_adicionales SET activo = 0 WHERE id = ?').run(id).changes > 0; }
+function getKpis() { const settings = getCompanySettings(); const currentClients = Number(database.prepare('SELECT COUNT(*) AS total FROM clientes WHERE activo = 1').get().total); return [{ title: 'Años de experiencia', value: `+${new Date().getFullYear() - 2005}`, description: 'Desde 2005' }, { title: 'Productos disponibles', value: `+${database.prepare('SELECT COUNT(*) AS total FROM productos WHERE activo = 1').get().total}`, description: 'En nuestro catálogo' }, { title: 'Clientes atendidos', value: `+${Number(settings.historicalClients || 0) + currentClients}`, description: 'Históricos y actuales' }, ...listAdditionalKpis()]; }
+function listTimelineItems() { return database.prepare('SELECT id, anio AS year, titulo AS title, descripcion AS text, imagen_url AS image FROM hitos_historia WHERE activo = 1 ORDER BY anio').all(); }
+function createTimelineItem(data) { const id = Number(database.prepare('INSERT INTO hitos_historia (anio, titulo, descripcion, imagen_url) VALUES (?, ?, ?, ?)').run(Number(data.year), data.title, data.text, data.image || null).lastInsertRowid); return listTimelineItems().find((item) => item.id === id); }
+function updateTimelineItem(id, data) { const result = database.prepare('UPDATE hitos_historia SET anio = ?, titulo = ?, descripcion = ?, imagen_url = ? WHERE id = ? AND activo = 1').run(Number(data.year), data.title, data.text, data.image || null, id); return result.changes ? listTimelineItems().find((item) => item.id === id) : null; }
+function deleteTimelineItem(id) { return database.prepare('UPDATE hitos_historia SET activo = 0 WHERE id = ?').run(id).changes > 0; }
+
+function getOrCreateCustomer(name, email) {
+  const current = database.prepare('SELECT id FROM clientes WHERE correo = ?').get(email);
+  if (current) return current.id;
+  return Number(database.prepare('INSERT INTO clientes (nombre_contacto, correo) VALUES (?, ?)').run(name, email).lastInsertRowid);
+}
+
+function hashPassword(password) { const salt = crypto.randomBytes(16).toString('hex'); return `${salt}:${crypto.scryptSync(password, salt, 64).toString('hex')}`; }
+function verifyPassword(password, stored) { const [salt, storedHash] = String(stored).split(':'); if (!salt || !storedHash) return false; const derived = crypto.scryptSync(password, salt, 64).toString('hex'); return crypto.timingSafeEqual(Buffer.from(storedHash, 'hex'), Buffer.from(derived, 'hex')); }
+
+const clientFields = 'id, nombre_contacto AS name, correo AS email, telefono AS phone, razon_social AS company, tipo_documento AS documentType, numero_documento AS documentNumber, direccion AS address, departamento AS department, provincia AS province, distrito AS district';
+function listClients() { return database.prepare(`SELECT ${clientFields} FROM clientes WHERE activo = 1 ORDER BY id DESC`).all(); }
+function createClient(data) { database.exec('BEGIN'); try { const id = Number(database.prepare('INSERT INTO clientes (nombre_contacto, correo, telefono, razon_social, tipo_documento, numero_documento, direccion, departamento, provincia, distrito) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(data.name, data.email, data.phone || null, data.company || null, data.documentType || null, data.documentNumber || null, data.address || null, data.department || null, data.province || null, data.district || null).lastInsertRowid); database.prepare('INSERT INTO usuarios (id_cliente, correo, contrasena_hash, rol, requiere_cambio_contrasena) VALUES (?, ?, ?, ?, 1)').run(id, data.email, hashPassword(data.temporaryPassword), 'cliente'); database.exec('COMMIT'); return listClients().find((client) => client.id === id); } catch (error) { database.exec('ROLLBACK'); throw error; } }
+function updateClient(id, data) { const result = database.prepare('UPDATE clientes SET nombre_contacto = ?, correo = ?, telefono = ?, razon_social = ?, tipo_documento = ?, numero_documento = ?, direccion = ?, departamento = ?, provincia = ?, distrito = ? WHERE id = ? AND activo = 1').run(data.name, data.email, data.phone || null, data.company || null, data.documentType || null, data.documentNumber || null, data.address || null, data.department || null, data.province || null, data.district || null, id); return result.changes ? listClients().find((client) => client.id === id) : null; }
+function deleteClient(id) { database.exec('BEGIN'); try { const result = database.prepare('UPDATE clientes SET activo = 0 WHERE id = ? AND activo = 1').run(id); if (result.changes) database.prepare("INSERT INTO configuracion_empresa (id, clientes_historicos, fecha_actualizacion) VALUES (1, 1, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET clientes_historicos = clientes_historicos + 1, fecha_actualizacion = CURRENT_TIMESTAMP").run(); database.exec('COMMIT'); return result.changes > 0; } catch (error) { database.exec('ROLLBACK'); throw error; } }
+function createSalesUser(data) { if (database.prepare('SELECT id FROM usuarios WHERE correo = ?').get(data.email)) throw new Error('Ese correo ya pertenece a otra cuenta.'); const id = Number(database.prepare('INSERT INTO usuarios_ventas (nombre, correo, codigo_usuario, telefono, numero_documento, contrasena_hash) VALUES (?, ?, ?, ?, ?, ?)').run(data.name, data.email, data.userCode, data.phone, data.documentNumber, hashPassword(data.temporaryPassword)).lastInsertRowid); return listSalesUsers().find((user) => user.id === id); }
+function listSalesUsers() { return database.prepare('SELECT id, nombre AS name, correo AS email, codigo_usuario AS userCode, telefono AS phone, numero_documento AS documentNumber, fecha_creacion AS createdAt FROM usuarios_ventas WHERE activo = 1 ORDER BY id DESC').all(); }
+function authenticate(email, password) { const user = database.prepare('SELECT id, id_cliente AS clientId, correo AS email, contrasena_hash AS passwordHash, rol AS role, requiere_cambio_contrasena AS mustChangePassword FROM usuarios WHERE correo = ? AND activo = 1').get(email); if (user && verifyPassword(password, user.passwordHash)) return { id: user.id, clientId: user.clientId, email: user.email, role: user.role, mustChangePassword: Boolean(user.mustChangePassword) }; const salesUser = database.prepare("SELECT id, correo AS email, contrasena_hash AS passwordHash, requiere_cambio_contrasena AS mustChangePassword FROM usuarios_ventas WHERE correo = ? AND activo = 1").get(email); if (!salesUser || !verifyPassword(password, salesUser.passwordHash)) return null; return { id: salesUser.id, clientId: null, email: salesUser.email, role: 'ventas', mustChangePassword: Boolean(salesUser.mustChangePassword) }; }
+function changeOwnPassword(userId, role, password) { if (role === 'cliente') return database.prepare('UPDATE usuarios SET contrasena_hash = ?, requiere_cambio_contrasena = 0 WHERE id = ? AND rol = ?').run(hashPassword(password), userId, 'cliente').changes > 0; if (role === 'ventas') return database.prepare('UPDATE usuarios_ventas SET contrasena_hash = ?, requiere_cambio_contrasena = 0 WHERE id = ?').run(hashPassword(password), userId).changes > 0; return false; }
+function getClientById(id) { return database.prepare(`SELECT ${clientFields} FROM clientes WHERE id = ? AND activo = 1`).get(id); }
+function updateOwnClient(id, data) { const current = getClientById(id); const updated = current && updateClient(id, { ...current, ...data }); if (updated) database.prepare('UPDATE usuarios SET correo = ? WHERE id_cliente = ? AND rol = ?').run(updated.email, id, 'cliente'); return updated; }
+function listQuotesByClient(clientId) { return database.prepare("SELECT c.id, c.codigo AS code, c.estado AS status, c.observaciones AS message, (SELECT dc.descripcion_producto FROM detalle_cotizaciones dc WHERE dc.id_cotizacion = c.id LIMIT 1) AS product, c.fecha_creacion AS createdAt FROM cotizaciones c WHERE c.id_cliente = ? ORDER BY c.id DESC").all(clientId); }
+function updateOwnQuote(quoteId, clientId, data) { const quote = database.prepare('SELECT id FROM cotizaciones WHERE id = ? AND id_cliente = ? AND estado = ?').get(quoteId, clientId, 'Pendiente'); if (!quote) return null; const product = database.prepare('SELECT id, nombre, precio_referencial, id_unidad_medida FROM productos WHERE nombre = ? AND activo = 1').get(data.product); if (!product) throw new Error('Producto no encontrado.'); database.prepare('UPDATE cotizaciones SET observaciones = ? WHERE id = ?').run(data.message || '', quoteId); database.prepare('UPDATE detalle_cotizaciones SET id_producto = ?, descripcion_producto = ?, precio_unitario = ?, id_unidad_medida = ? WHERE id_cotizacion = ?').run(product.id, product.nombre, product.precio_referencial, product.id_unidad_medida, quoteId); return listQuotesByClient(clientId).find((item) => item.id === quoteId); }
+function updateQuoteAdmin(quoteId, data) { const quote = database.prepare('SELECT id_cliente AS clientId FROM cotizaciones WHERE id = ?').get(quoteId); return quote ? updateOwnQuote(quoteId, quote.clientId, data) : null; }
+function listOrdersByClient(clientId) { return database.prepare("SELECT p.id, p.codigo AS code, p.estado AS status, p.fecha_creacion AS createdAt, p.fecha_estimada_entrega AS estimatedDeliveryDate, dp.descripcion_producto AS product, dp.cantidad AS quantity, dp.precio_unitario AS price, um.abreviatura AS unit FROM pedidos p LEFT JOIN detalle_pedidos dp ON dp.id_pedido = (SELECT id FROM detalle_pedidos WHERE id_pedido = p.id LIMIT 1) LEFT JOIN unidades_medida um ON um.id = dp.id_unidad_medida WHERE p.id_cliente = ? ORDER BY p.id DESC").all(clientId); }
+
+function initializeData() {
+  const unitId = getDefaultUnit();
+  if (!database.prepare('SELECT id FROM productos LIMIT 1').get()) {
+    const initial = [
+      ['PRD-0001', 'Producto Industrial A', 'Línea industrial', 'Solución resistente para operaciones exigentes.', 0, '⚙️'],
+      ['PRD-0002', 'Producto Técnico B', 'Línea técnica', 'Diseñado para rendimiento y precisión.', 0, '🔩'],
+      ['PRD-0003', 'Producto Profesional C', 'Línea profesional', 'Calidad confiable para tu negocio.', 0, '🧰'],
+    ];
+    const insert = database.prepare('INSERT INTO productos (codigo, nombre, descripcion, precio_referencial, id_categoria, id_unidad_medida, imagen_url) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    initial.forEach(([code, name, category, description, price, image]) => insert.run(code, name, description, price, getOrCreateCategory(category), unitId, image));
+  }
+  if (!database.prepare('SELECT id FROM pedidos LIMIT 1').get()) {
+    const customerId = getOrCreateCustomer('Cliente de ejemplo', 'cliente@ejemplo.com');
+    const product = database.prepare('SELECT id, nombre FROM productos LIMIT 1').get();
+    const orderId = Number(database.prepare("INSERT INTO pedidos (codigo, id_cliente, estado, fecha_estimada_entrega) VALUES ('PED-1001', ?, 'Pedido en camino', date('now', '+7 days'))").run(customerId).lastInsertRowid);
+    database.prepare('INSERT INTO detalle_pedidos (id_pedido, id_producto, descripcion_producto, cantidad, precio_unitario, id_unidad_medida) VALUES (?, ?, ?, 1, 0, ?)').run(orderId, product.id, product.nombre, unitId);
+    database.prepare("INSERT INTO historial_estados_pedido (id_pedido, estado, comentario) VALUES (?, 'Pedido en camino', 'Pedido inicial de prueba')").run(orderId);
+  }
+  if (!database.prepare('SELECT id FROM usuarios WHERE correo = ?').get('admin@empresa.local')) database.prepare('INSERT INTO usuarios (correo, contrasena_hash, rol) VALUES (?, ?, ?)').run('admin@empresa.local', hashPassword('admin123'), 'administracion');
+  const customer = database.prepare('SELECT id, correo FROM clientes WHERE correo = ?').get('cliente@ejemplo.com');
+  if (customer && !database.prepare('SELECT id FROM usuarios WHERE correo = ?').get(customer.correo)) database.prepare('INSERT INTO usuarios (id_cliente, correo, contrasena_hash, rol) VALUES (?, ?, ?, ?)').run(customer.id, customer.correo, hashPassword('cliente123'), 'cliente');
+}
+function initializeTimeline() { if (database.prepare('SELECT id FROM hitos_historia LIMIT 1').get()) return; const insert = database.prepare('INSERT INTO hitos_historia (anio, titulo, descripcion) VALUES (?, ?, ?)'); [[2005, 'Inicio de operaciones', 'Comenzamos nuestra trayectoria con el compromiso de brindar soluciones confiables y una atención cercana.'], [2015, 'Crecimiento y consolidación', 'Fortalecimos nuestra presencia, ampliando el catálogo y construyendo relaciones duraderas con nuevos clientes.'], [2022, 'Una nueva etapa', 'Incorporamos nuevas líneas de productos y fortalecimos el equipo comercial para acompañar mejor cada necesidad.'], [2025, 'Transformación digital', 'Dimos un paso hacia una atención más ágil con herramientas digitales para cotizaciones, pedidos y seguimiento.']].forEach((item) => insert.run(...item)); }
+
+function listProducts() { return database.prepare('SELECT p.id, p.codigo, p.nombre AS name, c.nombre AS category, p.descripcion AS description, p.imagen_url AS image FROM productos p LEFT JOIN categorias_producto c ON c.id = p.id_categoria WHERE p.activo = 1 ORDER BY p.id').all(); }
+function createProduct(data) { const categoryId = getOrCreateCategory(data.category); const id = Number(database.prepare('INSERT INTO productos (codigo, nombre, descripcion, id_categoria, id_unidad_medida, imagen_url) VALUES (?, ?, ?, ?, ?, ?)').run(nextCode('PRD', 'productos'), data.name, data.description, categoryId, getDefaultUnit(), data.image || '📦').lastInsertRowid); return listProducts().find((product) => product.id === id); }
+function updateProduct(id, data) { const categoryId = getOrCreateCategory(data.category); const result = database.prepare("UPDATE productos SET nombre = ?, descripcion = ?, id_categoria = ?, imagen_url = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ? AND activo = 1").run(data.name, data.description, categoryId, data.image || '📦', id); return result.changes ? listProducts().find((product) => product.id === id) : null; }
+function deleteProduct(id) { return database.prepare('UPDATE productos SET activo = 0, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?').run(id).changes > 0; }
+function createQuote(data) { const customerId = getOrCreateCustomer(data.name, data.email); const product = database.prepare('SELECT id, nombre, precio_referencial, id_unidad_medida FROM productos WHERE nombre = ? AND activo = 1').get(data.product); if (!product) throw new Error('Producto no encontrado.'); const id = Number(database.prepare('INSERT INTO cotizaciones (codigo, id_cliente, observaciones) VALUES (?, ?, ?)').run(nextCode('COT', 'cotizaciones'), customerId, data.message || '').lastInsertRowid); database.prepare('INSERT INTO detalle_cotizaciones (id_cotizacion, id_producto, descripcion_producto, cantidad, precio_unitario, id_unidad_medida) VALUES (?, ?, ?, 1, ?, ?)').run(id, product.id, product.nombre, product.precio_referencial, product.id_unidad_medida); return listQuotes().find((quote) => quote.id === id); }
+function listQuotes() { return database.prepare("SELECT c.id, c.codigo AS code, cl.nombre_contacto AS name, cl.correo AS email, c.observaciones AS message, (SELECT dc.descripcion_producto FROM detalle_cotizaciones dc WHERE dc.id_cotizacion = c.id LIMIT 1) AS product, (SELECT p.codigo FROM pedidos p WHERE p.id_cotizacion = c.id LIMIT 1) AS orderCode FROM cotizaciones c JOIN clientes cl ON cl.id = c.id_cliente ORDER BY c.id DESC").all(); }
+function createOrderFromQuote(quoteId, data) { const quote = database.prepare('SELECT id, codigo, id_cliente FROM cotizaciones WHERE id = ?').get(quoteId); if (!quote) throw new Error('Cotización no encontrada.'); const existing = database.prepare('SELECT codigo FROM pedidos WHERE id_cotizacion = ?').get(quoteId); if (existing) throw new Error(`Esta cotización ya está asociada al pedido ${existing.codigo}.`); const product = database.prepare('SELECT id, nombre FROM productos WHERE nombre = ? AND activo = 1').get(data.product); if (!product) throw new Error('Selecciona un producto válido.'); const unitId = getUnitByAbbreviation(data.unit); const orderId = Number(database.prepare("INSERT INTO pedidos (codigo, id_cliente, id_cotizacion, estado, fecha_estimada_entrega) VALUES (?, ?, ?, 'Pedido en curso', ?)").run(nextCode('PED', 'pedidos'), quote.id_cliente, quote.id, data.estimatedDeliveryDate).lastInsertRowid); database.prepare('INSERT INTO detalle_pedidos (id_pedido, id_producto, descripcion_producto, cantidad, precio_unitario, id_unidad_medida) VALUES (?, ?, ?, ?, ?, ?)').run(orderId, product.id, product.nombre, Number(data.quantity), Number(data.price), unitId); database.prepare("INSERT INTO historial_estados_pedido (id_pedido, estado, comentario) VALUES (?, 'Pedido en curso', 'Pedido creado desde cotización')").run(orderId); return getOrderById(orderId); }
+function listOrders() { return database.prepare("SELECT p.id, p.codigo AS code, cl.nombre_contacto AS customer, cl.correo AS customerEmail, p.estado AS status, p.fecha_creacion AS createdAt, p.fecha_estimada_entrega AS estimatedDeliveryDate, dp.descripcion_producto AS product, dp.cantidad AS quantity, dp.precio_unitario AS price, um.abreviatura AS unit, c.codigo AS quoteCode, p.fecha_creacion AS updatedAt FROM pedidos p JOIN clientes cl ON cl.id = p.id_cliente LEFT JOIN detalle_pedidos dp ON dp.id_pedido = (SELECT id FROM detalle_pedidos WHERE id_pedido = p.id LIMIT 1) LEFT JOIN unidades_medida um ON um.id = dp.id_unidad_medida LEFT JOIN cotizaciones c ON c.id = p.id_cotizacion ORDER BY p.id DESC").all(); }
+function getOrderById(id) { return listOrders().find((order) => order.id === id); }
+function getOrderByCode(code) { return listOrders().find((order) => order.code === code); }
+function updateOrderStatus(code, status) { const order = database.prepare('SELECT id FROM pedidos WHERE codigo = ?').get(code); if (!order) return null; database.prepare('UPDATE pedidos SET estado = ? WHERE id = ?').run(status, order.id); database.prepare('INSERT INTO historial_estados_pedido (id_pedido, estado) VALUES (?, ?)').run(order.id, status); return getOrderById(order.id); }
+
+configureOrderUnits();
+initializeData();
+initializeTimeline();
+module.exports = { listProducts, listUnits, getCompanySettings, updateWhatsAppNumber, updateHistoricalClients, getKpis, listAdditionalKpis, createAdditionalKpi, deleteAdditionalKpi, listTimelineItems, createTimelineItem, updateTimelineItem, deleteTimelineItem, createProduct, updateProduct, deleteProduct, listClients, createClient, updateClient, deleteClient, createSalesUser, listSalesUsers, authenticate, changeOwnPassword, getClientById, updateOwnClient, listQuotesByClient, updateOwnQuote, updateQuoteAdmin, listOrdersByClient, createQuote, listQuotes, createOrderFromQuote, listOrders, getOrderByCode, updateOrderStatus };

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Empresa | Soluciones para tu negocio</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="public-header">
+      <a class="logo" href="#inicio">TU EMPRESA</a>
+      <button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span><span></span></button>
+      <nav id="main-navigation"><a href="#productos">Productos</a><a href="#empresa">Empresa</a><a href="#proposito">Nosotros</a><a href="#historia">Historia</a><a href="#contacto">Atención</a><a href="#cotizacion">Cotizar</a><span id="session-menu" class="session-menu"><a id="session-access" class="session-access" href="/login" aria-label="Iniciar sesión">Iniciar sesión</a></span></nav>
+    </header>
+    <main>
+      <section id="inicio" class="hero">
+        <div class="hero-visual" id="hero-visual" aria-hidden="true"><div class="hero-orbit hero-orbit-one"></div><div class="hero-orbit hero-orbit-two"></div><p>CALIDAD · CONFIANZA · CRECIMIENTO</p></div>
+        <div class="hero-message">
+          <p class="eyebrow">SOLUCIONES QUE IMPULSAN TU NEGOCIO</p>
+          <h1>Productos que hacen avanzar a tu negocio.</h1>
+          <p>Conoce nuestras líneas de productos y solicita una cotización de forma sencilla.</p>
+          <a class="button" href="#productos">Explorar catálogo <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+      <section id="productos" class="section">
+        <p class="eyebrow">NUESTRO CATÁLOGO</p><h2>Encuentra lo que necesitas</h2>
+        <div id="product-list" class="product-list"></div>
+      </section>
+      <section id="empresa" class="section company">
+        <p class="eyebrow">SOBRE NOSOTROS</p><h2>Una empresa preparada para acompañarte.</h2>
+        <p>Esta sección será el espacio para contar la historia, experiencia, certificaciones y propuesta de valor de la empresa.</p>
+      </section>
+      <section id="indicadores" class="section kpi-section"><p class="eyebrow">NUESTRA EXPERIENCIA EN CIFRAS</p><h2>Indicadores que respaldan nuestro trabajo.</h2><div id="kpi-list" class="kpi-list"></div></section>
+      <section id="proposito" class="section">
+        <p class="eyebrow">NUESTRA ESENCIA</p><h2>Trabajamos con un propósito claro.</h2>
+        <div class="values-grid">
+          <article class="value-card"><span>✦</span><h3>Propósito</h3><p>Impulsar el crecimiento de nuestros clientes con productos confiables, atención cercana y soluciones que generen valor.</p></article>
+          <article class="value-card"><span>◎</span><h3>Misión</h3><p>Ofrecer productos y asesoría de calidad, respondiendo con agilidad a las necesidades de cada cliente.</p></article>
+          <article class="value-card"><span>↗</span><h3>Visión</h3><p>Ser una empresa referente en nuestro sector, reconocida por innovación, confianza y relaciones duraderas.</p></article>
+        </div>
+      </section>
+      <section id="historia" class="section timeline-section">
+        <p class="eyebrow">NUESTRO CAMINO</p><h2>Conoce un poco de <span>nuestra trayectoria.</span></h2>
+        <div class="timeline-carousel"><button id="timeline-previous" class="timeline-arrow" type="button" aria-label="Ver año anterior">‹</button><div id="timeline-slider" class="timeline-slider" aria-live="polite"></div><button id="timeline-next" class="timeline-arrow" type="button" aria-label="Ver siguiente año">›</button></div><div id="timeline-dots" class="timeline-dots" aria-label="Navegación de la línea de tiempo"></div>
+      </section>
+      <section id="contacto" class="section attention-section">
+        <p class="eyebrow">PUNTOS DE ATENCIÓN</p><h2>Estamos donde nos necesitas.</h2>
+        <div class="attention-grid">
+          <article><h3>Oficina principal</h3><p>Dirección de ejemplo<br>Ciudad, País</p><p>+00 000 000 000</p></article>
+          <article><h3>Atención comercial</h3><p>Lunes a viernes<br>8:00 a. m. – 6:00 p. m.</p><p>ventas@tuempresa.com</p></article>
+          <article><h3>Soporte y consultas</h3><p>Canal de ejemplo para resolver consultas sobre productos, cotizaciones y pedidos.</p></article>
+        </div>
+      </section>
+      <section id="cotizacion" class="section split">
+        <div><p class="eyebrow">COTIZACIONES</p><h2>Cuéntanos qué producto te interesa.</h2><p>Te contactaremos para entender tu necesidad y preparar una propuesta.</p></div>
+        <form id="quote-form">
+          <label>Nombre<input name="name" required placeholder="Tu nombre" /></label>
+          <label>Correo<input name="email" type="email" required placeholder="nombre@empresa.com" /></label>
+          <p id="quote-account-note" class="quote-account-note hidden">Usaremos el nombre y correo registrados en tu cuenta.</p>
+          <label>Producto<select name="product" id="product-select" required></select></label>
+          <label>Mensaje<textarea name="message" placeholder="Cantidad o detalle que necesites"></textarea></label>
+          <button class="button" type="submit">Solicitar cotización</button><p id="quote-message" class="message"></p>
+        </form>
+      </section>
+      <section id="pedido" class="section tracking">
+        <p class="eyebrow">SEGUIMIENTO DE PEDIDO</p><h2>Consulta tus pedidos desde tu cuenta.</h2>
+        <p>Para proteger la información de tus pedidos, el seguimiento está disponible únicamente después de iniciar sesión.</p>
+        <a id="tracking-access" class="button" href="/login">Iniciar sesión para ver mis pedidos</a>
+      </section>
+    </main>
+    <footer>© 2026 Tu Empresa · MVP local</footer>
+    <button id="whatsapp-general" class="whatsapp-float" type="button" aria-label="Escríbenos por WhatsApp" title="Escríbenos por WhatsApp"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.2a12.6 12.6 0 0 0-10.9 18.9L3.6 28.4l6.5-1.7A12.7 12.7 0 1 0 16 3.2Zm0 22.9c-1.9 0-3.7-.5-5.3-1.5l-.4-.2-3.8 1 1-3.7-.3-.4A10.5 10.5 0 1 1 16 26.1Zm5.8-7.8c-.3-.1-1.9-.9-2.1-1-.3-.1-.5-.1-.7.2s-.8 1-.9 1.2c-.2.2-.3.2-.6.1-1.8-.9-3-1.7-4.2-3.8-.2-.3 0-.4.1-.5l.5-.6c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-1-2.4c-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.5.1-.8.4s-1 1.1-1 2.7 1 3.1 1.2 3.3c.1.2 2 3.2 5 4.4.7.3 1.3.5 1.8.6.8.2 1.5.2 2.1.1.6-.1 1.9-.8 2.1-1.6.3-.8.3-1.4.2-1.6-.1-.1-.3-.2-.6-.4Z" fill="currentColor"/></svg></button>
+    <script src="/app.js"></script>
+  </body>
+</html>

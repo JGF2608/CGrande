@@ -1,0 +1,13 @@
+.env
+base_de_datos/*.db
+
+# Dependencias instaladas localmente y archivos temporales.
+node_modules/
+npm-debug.log*
+*.log
+
+# Configuración local de editores y sistema operativo.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
