@@ -141,3 +141,6 @@ footer { background:var(--forest-deep); }
   .price-field { min-width:0; }
   .price-field input { min-width:0; }
 }
+
+/* Versión simple del carrusel: únicamente imágenes publicitarias. */
+.promo-carousel .banner-slide { display:block; width:100%; height:clamp(220px,34vw,470px); min-height:0; padding:0; object-fit:cover; object-position:center; background:none; }
