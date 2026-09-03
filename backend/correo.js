@@ -54,8 +54,9 @@ function saveEmailConfiguration({ apiKey, recipient, salesRecipient, from }) {
     RESEND_TEST_RECIPIENT: recipient || process.env.RESEND_TEST_RECIPIENT,
     RESEND_SALES_RECIPIENT: salesRecipient || process.env.RESEND_SALES_RECIPIENT || recipient || process.env.RESEND_TEST_RECIPIENT,
     RESEND_FROM: from || process.env.RESEND_FROM || 'onboarding@resend.dev',
+    GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || '',
   };
-  const content = `# Archivo privado de configuración. No lo compartas ni lo subas a Internet.\nEMAIL_NOTIFICATIONS_ENABLED=${values.EMAIL_NOTIFICATIONS_ENABLED}\nRESEND_API_KEY=${values.RESEND_API_KEY}\nRESEND_TEST_RECIPIENT=${values.RESEND_TEST_RECIPIENT}\nRESEND_SALES_RECIPIENT=${values.RESEND_SALES_RECIPIENT}\nRESEND_FROM=${values.RESEND_FROM}\n`;
+  const content = `# Archivo privado de configuración. No lo compartas ni lo subas a Internet.\nEMAIL_NOTIFICATIONS_ENABLED=${values.EMAIL_NOTIFICATIONS_ENABLED}\nRESEND_API_KEY=${values.RESEND_API_KEY}\nRESEND_TEST_RECIPIENT=${values.RESEND_TEST_RECIPIENT}\nRESEND_SALES_RECIPIENT=${values.RESEND_SALES_RECIPIENT}\nRESEND_FROM=${values.RESEND_FROM}\n\n# Clave de Google Maps. Restringirla al dominio de la web en Google Cloud.\nGOOGLE_MAPS_API_KEY=${values.GOOGLE_MAPS_API_KEY}\n`;
   fs.writeFileSync(path.join(__dirname, '..', '.env'), content, { encoding: 'utf8', mode: 0o600 });
   Object.assign(process.env, values);
   return getEmailConfigurationStatus();
