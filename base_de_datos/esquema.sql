@@ -55,6 +55,15 @@ CREATE TABLE IF NOT EXISTS banners_publicitarios (
   fecha_actualizacion TEXT
 );
 
+CREATE TABLE IF NOT EXISTS puntos_atencion (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL,
+  direccion TEXT NOT NULL,
+  activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1)),
+  fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fecha_actualizacion TEXT
+);
+
 CREATE TABLE IF NOT EXISTS productos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   codigo TEXT NOT NULL UNIQUE,
