@@ -12,6 +12,7 @@ database.exec(fs.readFileSync(path.join(__dirname, 'esquema.sql'), 'utf8'));
 });
 try { database.exec('ALTER TABLE usuarios ADD COLUMN requiere_cambio_contrasena INTEGER NOT NULL DEFAULT 0'); } catch { /* La columna ya existe. */ }
 try { database.exec('ALTER TABLE configuracion_empresa ADD COLUMN clientes_historicos INTEGER NOT NULL DEFAULT 0'); } catch { /* La columna ya existe. */ }
+['latitud', 'longitud'].forEach((column) => { try { database.exec(`ALTER TABLE puntos_atencion ADD COLUMN ${column} REAL`); } catch { /* La columna ya existe. */ } });
 
 function nextCode(prefix, table) {
   const rows = database.prepare(`SELECT codigo FROM ${table}`).all();
@@ -57,9 +58,10 @@ function listBannersAdmin() { return database.prepare("SELECT id, imagen_url AS 
 function createBanner(data) { const id = Number(database.prepare('INSERT INTO banners_publicitarios (titulo, imagen_url) VALUES (?, ?)').run('Banner', data.image)); return listBannersAdmin().find((item) => item.id === id); }
 function updateBanner(id, data) { const result = database.prepare('UPDATE banners_publicitarios SET imagen_url = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ? AND activo = 1').run(data.image, id); return result.changes ? listBannersAdmin().find((item) => item.id === id) : null; }
 function deleteBanner(id) { return database.prepare('UPDATE banners_publicitarios SET activo = 0, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?').run(id).changes > 0; }
-function listAttentionPoints() { return database.prepare('SELECT id, nombre AS name, direccion AS address FROM puntos_atencion WHERE activo = 1 ORDER BY id').all(); }
-function createAttentionPoint(data) { const id = Number(database.prepare('INSERT INTO puntos_atencion (nombre, direccion) VALUES (?, ?)').run(data.name, data.address).lastInsertRowid); return listAttentionPoints().find((item) => item.id === id); }
-function updateAttentionPoint(id, data) { const result = database.prepare('UPDATE puntos_atencion SET nombre = ?, direccion = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ? AND activo = 1').run(data.name, data.address, id); return result.changes ? listAttentionPoints().find((item) => item.id === id) : null; }
+function listAttentionPoints() { return database.prepare('SELECT id, nombre AS name, direccion AS address, latitud AS latitude, longitud AS longitude FROM puntos_atencion WHERE activo = 1 ORDER BY id').all(); }
+function coordinate(value) { if (value === null || value === undefined || value === '') return null; const number = Number(value); return Number.isFinite(number) ? number : null; }
+function createAttentionPoint(data) { const id = Number(database.prepare('INSERT INTO puntos_atencion (nombre, direccion, latitud, longitud) VALUES (?, ?, ?, ?)').run(data.name, data.address, coordinate(data.latitude), coordinate(data.longitude)).lastInsertRowid); return listAttentionPoints().find((item) => item.id === id); }
+function updateAttentionPoint(id, data) { const current = database.prepare('SELECT latitud AS latitude, longitud AS longitude FROM puntos_atencion WHERE id = ? AND activo = 1').get(id); if (!current) return null; const latitude = data.latitude === undefined ? current.latitude : coordinate(data.latitude); const longitude = data.longitude === undefined ? current.longitude : coordinate(data.longitude); const result = database.prepare('UPDATE puntos_atencion SET nombre = ?, direccion = ?, latitud = ?, longitud = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ? AND activo = 1').run(data.name, data.address, latitude, longitude, id); return result.changes ? listAttentionPoints().find((item) => item.id === id) : null; }
 function deleteAttentionPoint(id) { return database.prepare('UPDATE puntos_atencion SET activo = 0, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?').run(id).changes > 0; }
 
 function getOrCreateCustomer(name, email) {
