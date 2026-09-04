@@ -31,6 +31,13 @@ function validateSalesUser(user) {
   if (!user.temporaryPassword || user.temporaryPassword.length < 8) return 'La contraseña temporal debe tener al menos 8 caracteres.';
   return null;
 }
+function validateSocialNetworks(networks) {
+  for (const value of [networks.facebookUrl, networks.instagramUrl, networks.linkedinUrl]) {
+    if (!value) continue;
+    try { const url = new URL(value); if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Protocol'); } catch { return 'Ingresa enlaces completos que comiencen con https://.'; }
+  }
+  return null;
+}
 function getSession(request) { const token = (request.headers.cookie || '').split(';').map((item) => item.trim()).find((item) => item.startsWith('mvp_session='))?.split('=')[1]; const record = token ? sessions.get(token) : null; if (!record) return null; if (record.expiresAt < Date.now()) { sessions.delete(token); return null; } return record.user; }
 function requireRole(request, response, role) { const session = getSession(request); if (!session || (role && session.role !== role)) { sendJson(response, 401, { message: 'Acceso no autorizado.' }); return null; } return session; }
 function requireRoles(request, response, roles) { const session = getSession(request); if (!session || !roles.includes(session.role)) { sendJson(response, 401, { message: 'Acceso no autorizado.' }); return null; } return session; }
@@ -54,6 +61,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'PATCH' && url.pathname === '/api/email/configuration') { if (!requireRole(request, response, 'administracion')) return; return sendJson(response, 200, email.saveEmailConfiguration(await readBody(request))); }
     if (request.method === 'POST' && url.pathname === '/api/email/send-test') { if (!requireRole(request, response, 'administracion')) return; await email.sendTestEmail(); return sendJson(response, 200, { message: 'Correo de prueba enviado. Revisa tu bandeja de entrada y la carpeta de spam.' }); }
     if (request.method === 'PATCH' && url.pathname === '/api/company-settings') { if (!requireRole(request, response, 'administracion')) return; const settings = await readBody(request); const number = String(settings.whatsappNumber || '').replace(/\D/g, ''); if (number && !/^\d{8,15}$/.test(number)) return sendJson(response, 400, { message: 'Ingresa un número de WhatsApp válido, con código de país.' }); return sendJson(response, 200, database.updateWhatsAppNumber(number)); }
+    if (request.method === 'PATCH' && url.pathname === '/api/company-settings/social-networks') { if (!requireRole(request, response, 'administracion')) return; const networks = await readBody(request); const error = validateSocialNetworks(networks); if (error) return sendJson(response, 400, { message: error }); return sendJson(response, 200, database.updateSocialNetworks(networks)); }
     if (request.method === 'GET' && url.pathname === '/api/kpis') return sendJson(response, 200, database.getKpis());
     if (request.method === 'GET' && url.pathname === '/api/attention-points') return sendJson(response, 200, database.listAttentionPoints());
     if (request.method === 'GET' && url.pathname === '/api/maps/config') return sendJson(response, 200, { apiKey: process.env.GOOGLE_MAPS_API_KEY || '' });
