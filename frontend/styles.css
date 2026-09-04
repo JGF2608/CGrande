@@ -173,3 +173,22 @@ footer { background:var(--forest-deep); }
 .attention-map-message { margin:0; padding:12px 16px; background:#eff5ed; color:var(--forest-deep); font-size:.9rem; }
 .map-placeholder { display:grid; place-items:center; min-height:440px; margin:0; padding:28px; text-align:center; color:#48654f; }
 @media (max-width:800px) { .attention-layout { grid-template-columns:1fr; } .attention-list { max-height:330px; } .attention-map-card,#attention-map { min-height:350px; } .map-placeholder { min-height:350px; } }
+
+/* Pie de página corporativo y redes sociales. */
+.site-footer { padding:64px 7% 34px; background:#091d15; color:#e8f1e8; }
+.footer-main { display:grid; grid-template-columns:1.5fr repeat(2,.75fr) 1fr; gap:42px; max-width:1380px; margin:0 auto; }
+.footer-logo { display:inline-block; color:#fff; font-size:1.45rem; font-weight:900; letter-spacing:1.5px; text-decoration:none; }
+.footer-brand p { max-width:310px; margin:14px 0; color:#cfddcf; }
+.footer-small { margin-top:34px!important; color:#9bb29e!important; font-size:.8rem; }
+.footer-links { display:grid; align-content:start; gap:10px; }
+.site-footer h3 { margin:0 0 7px; color:#a8df87; font-size:1rem; }
+.footer-links a { width:max-content; color:#f3f8f2; text-decoration:none; font-size:.93rem; }
+.footer-links a:hover { color:#a8df87; text-decoration:underline; }
+.footer-social p { margin:0 0 15px; color:#cfddcf; font-size:.92rem; }
+.footer-social small { display:block; margin-top:14px; color:#9bb29e; font-size:.78rem; line-height:1.45; }
+.social-buttons { display:flex; gap:10px; }
+.social-button { display:grid; width:44px; height:44px; place-items:center; border:1px solid #a8df8766; border-radius:50%; background:#ffffff10; color:#a8df87; cursor:pointer; transition:background .2s ease,color .2s ease,transform .2s ease; }
+.social-button svg { width:21px; height:21px; }
+.social-button:hover { background:#a8df87; color:#09281b; transform:translateY(-3px); }
+@media (max-width:800px) { .site-footer { padding:48px 6% 28px; } .footer-main { grid-template-columns:repeat(2,1fr); gap:32px 24px; } .footer-brand { grid-column:1 / -1; } .footer-small { margin-top:22px!important; } }
+@media (max-width:480px) { .footer-main { grid-template-columns:1fr; } .footer-brand { grid-column:auto; } }
