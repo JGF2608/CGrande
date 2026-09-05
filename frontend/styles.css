@@ -268,3 +268,13 @@ footer { background:var(--forest-deep); }
 .partners-empty { margin:0; color:#48654f; }
 @media (max-width:850px) { .commercial-partners-track { grid-template-columns:repeat(3,minmax(0,1fr)); } .commercial-partners-track.is-carousel .commercial-partner { flex-basis:calc((100% - 36px)/3); } }
 @media (max-width:550px) { .commercial-partners-track { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; } .commercial-partners-track.is-carousel .commercial-partner { flex-basis:calc(100% - 55px); } .commercial-partner { min-height:112px; padding:15px; } }
+
+/* Índice lateral de los paneles internos. */
+.section-index { position:fixed; z-index:4; top:112px; left:max(18px,calc(50% - 700px)); width:172px; padding:16px; border:1px solid #d9e2ec; border-radius:12px; background:#fff; box-shadow:0 8px 22px #09281b12; }
+.section-index strong { display:block; margin:0 0 10px; color:#123d2b; font-size:.9rem; text-transform:uppercase; letter-spacing:.08em; }
+.section-index nav { display:grid; gap:4px; max-height:calc(100vh - 190px); overflow:auto; }
+.section-index a { padding:8px 7px; border-radius:6px; color:#48654f; font-size:.86rem; font-weight:700; text-decoration:none; }
+.section-index a:hover { background:#eaf4e7; color:#123d2b; }
+.admin-section,.sales-main section,.account section { scroll-margin-top:28px; }
+@media (max-width:1400px) { .section-index { position:sticky; top:8px; width:auto; margin:14px 7% 0; } .section-index strong { display:inline-block; margin:0 12px 0 0; } .section-index nav { display:inline-flex; max-width:calc(100vw - 90px); gap:4px; overflow-x:auto; vertical-align:middle; white-space:nowrap; } }
+@media (max-width:700px) { .section-index { margin:10px 5% 0; padding:11px 12px; } .section-index nav { max-width:calc(100vw - 70px); } .section-index a { padding:6px; font-size:.8rem; } }
