@@ -251,3 +251,20 @@ footer { background:var(--forest-deep); }
 .hidden { display:none!important; }
 @media (max-width:900px) { .catalog-carousel .catalog-category-card { flex-basis:calc((100% - 16px)/2); } }
 @media (max-width:550px) { .catalog-grid .catalog-category-card,.catalog-carousel .catalog-category-card { min-height:280px; height:280px; } .catalog-carousel .catalog-category-card { flex-basis:calc(100% - 42px); } .catalog-arrow { width:38px; height:38px; } }
+
+/* Socios comerciales. */
+.commercial-partners { background:#fff; overflow:hidden; }
+.partners-heading { max-width:640px; margin-bottom:36px; }
+.partners-heading h2 { margin:6px 0 10px; font-size:clamp(2.2rem,4vw,4rem); color:#102f20; }
+.partners-heading p:last-child { margin:0; color:#48654f; }
+.commercial-partners-track { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:18px; align-items:stretch; }
+.commercial-partner { min-height:126px; display:grid; place-items:center; align-content:center; gap:10px; padding:20px; border:1px solid #dce7dc; background:#fff; transition:transform .2s ease,box-shadow .2s ease; }
+.commercial-partner:hover { transform:translateY(-4px); box-shadow:0 12px 24px #09281b17; }
+.commercial-partner img { width:100%; height:66px; object-fit:contain; filter:grayscale(1); opacity:.72; transition:filter .2s ease,opacity .2s ease; }
+.commercial-partner:hover img { filter:grayscale(0); opacity:1; }
+.commercial-partner span { color:#48654f; font-size:.82rem; font-weight:700; text-align:center; }
+.commercial-partners-track.is-carousel { display:flex; overflow-x:hidden; scroll-snap-type:x mandatory; scroll-behavior:smooth; }
+.commercial-partners-track.is-carousel .commercial-partner { flex:0 0 calc((100% - 72px)/5); scroll-snap-align:start; }
+.partners-empty { margin:0; color:#48654f; }
+@media (max-width:850px) { .commercial-partners-track { grid-template-columns:repeat(3,minmax(0,1fr)); } .commercial-partners-track.is-carousel .commercial-partner { flex-basis:calc((100% - 36px)/3); } }
+@media (max-width:550px) { .commercial-partners-track { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; } .commercial-partners-track.is-carousel .commercial-partner { flex-basis:calc(100% - 55px); } .commercial-partner { min-height:112px; padding:15px; } }
