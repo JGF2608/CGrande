@@ -219,7 +219,7 @@ footer { background:var(--forest-deep); }
 .catalog-intro { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr); align-items:end; column-gap:70px; padding-bottom:45px; }
 .catalog-intro h2 { grid-column:1 / -1; margin:4px 0 0; max-width:none; text-align:left; white-space:nowrap; font-size:clamp(3rem,6vw,6.3rem); line-height:.88; letter-spacing:-.075em; }
 .catalog-intro h2 em { color:#73c76a; font-family:Georgia,serif; font-weight:400; letter-spacing:-.06em; }
-.catalog-intro > p:last-child { max-width:370px; margin:0 0 6px; color:#48654f; font-size:1.05rem; }
+.catalog-intro > p:last-child { grid-column:1 / -1; max-width:none; margin:28px 0 6px; color:#48654f; font-size:1.05rem; white-space:nowrap; }
 .catalog-navigation { display:flex; gap:10px; overflow:auto; min-height:0; margin:0 0 30px; padding:0 0 8px; scrollbar-width:thin; }
 .catalog-filter { flex:0 0 auto; border:1px solid #a9c0ae; border-radius:999px; padding:9px 16px; background:transparent; color:#163b29; font:inherit; font-size:.9rem; cursor:pointer; transition:background .2s ease,color .2s ease,border .2s ease; }
 .catalog-filter:hover,.catalog-filter.active { border-color:#123d2b; background:#123d2b; color:#fff; }
@@ -231,7 +231,7 @@ footer { background:var(--forest-deep); }
 .catalog-category-card span b { position:absolute; right:0; bottom:0; color:#a8df87; font-size:1.4rem; }
 .catalog-grid .product-card { min-height:365px; }
 @media (max-width:900px) { .catalog-intro { grid-template-columns:1fr; row-gap:20px; } .catalog-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .catalog-category-card:nth-child(5n+1) { grid-column:span 1; } }
-@media (max-width:550px) { .catalog-intro { padding-bottom:32px; } .catalog-intro h2 { white-space:normal; font-size:3.1rem; } .catalog-grid { grid-template-columns:1fr; } .catalog-category-card { min-height:280px; } }
+@media (max-width:550px) { .catalog-intro { padding-bottom:32px; } .catalog-intro h2 { white-space:normal; font-size:3.1rem; } .catalog-intro > p:last-child { margin-top:16px; white-space:normal; } .catalog-grid { grid-template-columns:1fr; } .catalog-category-card { min-height:280px; } }
 
 /* Carruseles escalables de categorías. */
 .catalog-carousel-shell { position:relative; }
