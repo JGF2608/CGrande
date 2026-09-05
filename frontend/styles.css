@@ -278,3 +278,23 @@ footer { background:var(--forest-deep); }
 .admin-section,.sales-main section,.account section { scroll-margin-top:28px; }
 @media (max-width:1400px) { .section-index { position:sticky; top:8px; width:auto; margin:14px 7% 0; } .section-index strong { display:inline-block; margin:0 12px 0 0; } .section-index nav { display:inline-flex; max-width:calc(100vw - 90px); gap:4px; overflow-x:auto; vertical-align:middle; white-space:nowrap; } }
 @media (max-width:700px) { .section-index { margin:10px 5% 0; padding:11px 12px; } .section-index nav { max-width:calc(100vw - 70px); } .section-index a { padding:6px; font-size:.8rem; } }
+
+/* Contención común: evita que controles, archivos e imágenes rompan tarjetas. */
+body { overflow-x:hidden; }
+img,svg,video { max-width:100%; }
+input,select,textarea,button { max-width:100%; }
+input[type="file"] { width:100%; min-width:0; max-width:100%; padding-right:6px; overflow:hidden; font-size:.82rem; text-overflow:ellipsis; }
+.admin-card,.card,.section-content,.form-grid,.form-grid > label { min-width:0; }
+@media (max-width:1050px) {
+  .admin-main .form-grid,.sales-main .form-grid,.account .form-grid { grid-template-columns:minmax(0,1fr); }
+  .admin-main,.sales-main,.account { width:100%; max-width:none; padding-left:max(5%,24px)!important; padding-right:max(5%,24px)!important; }
+  .admin-row,.row { min-width:0; overflow-wrap:anywhere; }
+}
+@media (max-width:700px) {
+  body > header:not(.public-header) { gap:10px; padding:14px 5%; }
+  body > header:not(.public-header) nav { display:flex; gap:10px; flex-shrink:0; }
+  body > header:not(.public-header) nav a,body > header:not(.public-header) nav button { font-size:.82rem; }
+  .admin-main,.sales-main,.account { padding-left:16px!important; padding-right:16px!important; }
+  .admin-section,.section-content,.admin-card,.card { max-width:100%; }
+  input[type="file"] { font-size:.75rem; }
+}
