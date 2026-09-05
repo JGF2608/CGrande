@@ -24,11 +24,11 @@ function validateClient(client) {
   if (!client.district || !client.address) return 'Completa distrito y dirección.';
   return null;
 }
-function validateSalesUser(user) {
+function validateSalesUser(user, requiresTemporaryPassword = true) {
   if (!user.name || !user.email || !user.userCode) return 'Completa nombre, correo y código de usuario.';
   if (!/^\d{9}$/.test(String(user.phone || ''))) return 'El teléfono debe tener exactamente 9 dígitos.';
   if (!/^\d{8,11}$/.test(String(user.documentNumber || ''))) return 'El número de documento debe tener entre 8 y 11 dígitos.';
-  if (!user.temporaryPassword || user.temporaryPassword.length < 8) return 'La contraseña temporal debe tener al menos 8 caracteres.';
+  if (requiresTemporaryPassword && (!user.temporaryPassword || user.temporaryPassword.length < 8)) return 'La contraseña temporal debe tener al menos 8 caracteres.';
   return null;
 }
 function validateSocialNetworks(networks) {
@@ -41,6 +41,7 @@ function validateSocialNetworks(networks) {
 function getSession(request) { const token = (request.headers.cookie || '').split(';').map((item) => item.trim()).find((item) => item.startsWith('mvp_session='))?.split('=')[1]; const record = token ? sessions.get(token) : null; if (!record) return null; if (record.expiresAt < Date.now()) { sessions.delete(token); return null; } return record.user; }
 function requireRole(request, response, role) { const session = getSession(request); if (!session || (role && session.role !== role)) { sendJson(response, 401, { message: 'Acceso no autorizado.' }); return null; } return session; }
 function requireRoles(request, response, roles) { const session = getSession(request); if (!session || !roles.includes(session.role)) { sendJson(response, 401, { message: 'Acceso no autorizado.' }); return null; } return session; }
+function revokeSalesUserSessions(userId) { for (const [token, record] of sessions) if (record.user.role === 'ventas' && record.user.id === userId) sessions.delete(token); }
 
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
@@ -91,6 +92,8 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname.startsWith('/api/clients/')) { if (!requireRole(request, response, 'administracion')) return; return database.deleteClient(Number(url.pathname.split('/').pop())) ? sendJson(response, 200, { message: 'Cliente eliminado.' }) : sendJson(response, 404, { message: 'Cliente no encontrado.' }); }
     if (request.method === 'GET' && url.pathname === '/api/sales-users') { if (!requireRole(request, response, 'administracion')) return; return sendJson(response, 200, database.listSalesUsers()); }
     if (request.method === 'POST' && url.pathname === '/api/sales-users') { if (!requireRole(request, response, 'administracion')) return; const user = await readBody(request); const error = validateSalesUser(user); if (error) return sendJson(response, 400, { message: error }); return sendJson(response, 201, database.createSalesUser(user)); }
+    if (request.method === 'PATCH' && url.pathname.startsWith('/api/sales-users/')) { if (!requireRole(request, response, 'administracion')) return; const user = await readBody(request); const error = validateSalesUser(user, false); if (error) return sendJson(response, 400, { message: error }); const updated = database.updateSalesUser(Number(url.pathname.split('/').pop()), user); return updated ? sendJson(response, 200, updated) : sendJson(response, 404, { message: 'Usuario de ventas no encontrado.' }); }
+    if (request.method === 'DELETE' && url.pathname.startsWith('/api/sales-users/')) { if (!requireRole(request, response, 'administracion')) return; const id = Number(url.pathname.split('/').pop()); if (!database.deleteSalesUser(id)) return sendJson(response, 404, { message: 'Usuario de ventas no encontrado.' }); revokeSalesUserSessions(id); return sendJson(response, 200, { message: 'Usuario de ventas eliminado.' }); }
     if (request.method === 'GET' && url.pathname === '/api/orders') { if (!requireRoles(request, response, ['administracion', 'ventas'])) return; return sendJson(response, 200, database.listOrders()); }
     if (request.method === 'GET' && url.pathname.startsWith('/api/orders/')) { const session = getSession(request); if (!session) return sendJson(response, 401, { message: 'Inicia sesión para consultar un pedido.' }); const code = decodeURIComponent(url.pathname.split('/').pop()).toUpperCase(); const order = session.role === 'administracion' ? database.getOrderByCode(code) : database.listOrdersByClient(session.clientId).find((item) => item.code === code); return order ? sendJson(response, 200, order) : sendJson(response, 404, { message: 'No encontramos ese pedido asociado a tu cuenta.' }); }
     if (request.method === 'PATCH' && url.pathname.startsWith('/api/orders/')) { if (!requireRole(request, response, 'administracion')) return; const update = await readBody(request); if (!allowedStatuses.includes(update.status)) return sendJson(response, 400, { message: 'Actualización inválida.' }); const code = decodeURIComponent(url.pathname.split('/').pop()).toUpperCase(); const previous = database.getOrderByCode(code); const order = database.updateOrderStatus(code, update.status); if (order && update.status === 'Pedido en camino' && previous?.status !== 'Pedido en camino') email.notifyOrderInTransit(order).catch((error) => console.log(`No se pudo notificar el pedido ${order.code}: ${error.message}`)); return order ? sendJson(response, 200, order) : sendJson(response, 404, { message: 'Pedido no encontrado.' }); }
