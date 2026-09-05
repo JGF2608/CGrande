@@ -5,8 +5,11 @@ CREATE TABLE IF NOT EXISTS categorias_producto (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT NOT NULL UNIQUE,
   descripcion TEXT,
+  id_categoria_padre INTEGER,
+  imagen_url TEXT,
   fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1))
+  activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1)),
+  FOREIGN KEY (id_categoria_padre) REFERENCES categorias_producto(id)
 );
 
 CREATE TABLE IF NOT EXISTS unidades_medida (

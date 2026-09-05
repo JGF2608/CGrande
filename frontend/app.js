@@ -1,6 +1,9 @@
 const productList = document.querySelector('#product-list');
 const productSelect = document.querySelector('#product-select');
 const kpiList = document.querySelector('#kpi-list');
+let catalogProducts = [];
+let catalogCategories = [];
+let selectedCatalogCategoryId = null;
 let whatsappNumber = '';
 let timelineItems = [];
 let activeTimelineItem = 0;
@@ -49,16 +52,11 @@ mainNavigation.querySelectorAll('a').forEach((link) => link.addEventListener('cl
   mainNavigation.classList.remove('is-open'); mobileMenuToggle.classList.remove('is-open'); mobileMenuToggle.setAttribute('aria-expanded', 'false'); mobileMenuToggle.setAttribute('aria-label', 'Abrir menú');
 }));
 
-async function loadProducts() {
-  const products = await fetch('/api/products').then((response) => response.json());
-  productList.innerHTML = products.map((product) => { const visual = product.image && product.image.startsWith('data:image/') ? `<img class="product-photo" src="${product.image}" alt="${escapeHtml(product.name)}">` : `<div class="product-icon">${escapeHtml(product.image || '📦')}</div>`; return `<article class="product product-card" tabindex="0">${visual}<div class="product-name"><h3>${escapeHtml(product.name)}</h3></div><div class="product-details"><p class="category">${escapeHtml(product.category)}</p><p>${escapeHtml(product.description)}</p><button class="button select-product" data-product="${escapeHtml(product.name)}">Cotizar este producto</button><button class="text-button whatsapp-product" data-product="${escapeHtml(product.name)}">Consultar por WhatsApp</button></div></article>`; }).join('');
-  productSelect.innerHTML = `<option value="">Selecciona un producto</option>${products.map((product) => `<option>${escapeHtml(product.name)}</option>`).join('')}`;
-  const heroVisual = document.querySelector('#hero-visual');
-  const heroProduct = products.find((product) => product.image && product.image.startsWith('data:image/'));
-  if (heroProduct) { heroVisual.style.setProperty('--hero-image', `url("${heroProduct.image}")`); heroVisual.classList.add('has-image'); }
-  document.querySelectorAll('.select-product').forEach((button) => button.addEventListener('click', () => { productSelect.value = button.dataset.product; document.querySelector('#cotizacion').scrollIntoView({ behavior: 'smooth' }); }));
-  document.querySelectorAll('.whatsapp-product').forEach((button) => button.addEventListener('click', () => contactByWhatsApp(`Hola, deseo consultar por el producto: ${button.dataset.product}.`)));
-}
+function productCard(product){const visual=product.image&&product.image.startsWith('data:image/')?`<img class="product-photo" src="${product.image}" alt="${escapeHtml(product.name)}">`:`<div class="product-icon">${escapeHtml(product.image||'📦')}</div>`;return `<article class="product product-card" tabindex="0">${visual}<div class="product-name"><h3>${escapeHtml(product.name)}</h3></div><div class="product-details"><p class="category">${escapeHtml(product.parentCategory?`${product.parentCategory} / ${product.category}`:product.category)}</p><p>${escapeHtml(product.description)}</p><button class="button select-product" data-product="${escapeHtml(product.name)}">Cotizar este producto</button><button class="text-button whatsapp-product" data-product="${escapeHtml(product.name)}">Consultar por WhatsApp</button></div></article>`}
+function categoryCard(category){const visual=category.image&&category.image.startsWith('data:image/')?`<img class="category-photo" src="${category.image}" alt="${escapeHtml(category.name)}">`:`<div class="category-placeholder">${escapeHtml(category.name.slice(0,1).toUpperCase())}</div>`;return `<button class="catalog-category-card" type="button" data-category-id="${category.id}">${visual}<span>${escapeHtml(category.name)}</span></button>`}
+function bindCatalogInteractions(){document.querySelectorAll('.catalog-category-card').forEach(button=>button.addEventListener('click',()=>{selectedCatalogCategoryId=Number(button.dataset.categoryId);renderCatalog()}));document.querySelector('#catalog-back')?.addEventListener('click',()=>{selectedCatalogCategoryId=null;renderCatalog()});document.querySelectorAll('.select-product').forEach(button=>button.addEventListener('click',()=>{productSelect.value=button.dataset.product;document.querySelector('#cotizacion').scrollIntoView({behavior:'smooth'})}));document.querySelectorAll('.whatsapp-product').forEach(button=>button.addEventListener('click',()=>contactByWhatsApp(`Hola, deseo consultar por el producto: ${button.dataset.product}.`)))}
+function renderCatalog(){const title=document.querySelector('#catalog-title'),navigation=document.querySelector('#catalog-navigation');if(!selectedCatalogCategoryId){title.textContent='Encuentra lo que necesitas';navigation.innerHTML='';const roots=catalogCategories.filter(category=>!category.parentId);productList.innerHTML=roots.map(categoryCard).join('')||'<p>Aún no hay categorías registradas.</p>';bindCatalogInteractions();return}const category=catalogCategories.find(item=>item.id===selectedCatalogCategoryId);if(!category){selectedCatalogCategoryId=null;return renderCatalog()}title.textContent=category.name;navigation.innerHTML='<button id="catalog-back" class="catalog-back" type="button">← Ver todas las categorías</button>';const subcategories=catalogCategories.filter(item=>Number(item.parentId)===category.id),products=catalogProducts.filter(product=>Number(product.categoryId)===category.id);productList.innerHTML=[...subcategories.map(categoryCard),...products.map(productCard)].join('')||'<p>Esta categoría aún no tiene productos registrados.</p>';bindCatalogInteractions()}
+async function loadProducts(){[catalogProducts,catalogCategories]=await Promise.all([fetch('/api/products').then(response=>response.json()),fetch('/api/categories').then(response=>response.json())]);productSelect.innerHTML=`<option value="">Selecciona un producto</option>${catalogProducts.map(product=>`<option>${escapeHtml(product.name)}</option>`).join('')}`;renderCatalog()}
 
 document.querySelector('#quote-form').addEventListener('submit', async (event) => {
   event.preventDefault();
