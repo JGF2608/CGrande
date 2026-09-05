@@ -232,3 +232,22 @@ footer { background:var(--forest-deep); }
 .catalog-grid .product-card { min-height:365px; }
 @media (max-width:900px) { .catalog-intro { grid-template-columns:1fr; row-gap:20px; } .catalog-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .catalog-category-card:nth-child(5n+1) { grid-column:span 1; } }
 @media (max-width:550px) { .catalog-intro { padding-bottom:32px; } .catalog-intro h2 { font-size:3.1rem; } .catalog-grid { grid-template-columns:1fr; } .catalog-category-card { min-height:280px; } }
+
+/* Carruseles escalables de categorías. */
+.catalog-carousel-shell { position:relative; }
+.catalog-grid .catalog-category-card { min-height:320px; height:320px; grid-column:span 1!important; }
+.catalog-carousel { display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth; scrollbar-width:none; padding:0 2px 12px; }
+.catalog-carousel::-webkit-scrollbar,.catalog-filter-track::-webkit-scrollbar { display:none; }
+.catalog-carousel .catalog-category-card { flex:0 0 calc((100% - 48px)/4); min-height:320px; height:320px; scroll-snap-align:start; }
+.catalog-arrow,.catalog-filter-arrow { display:grid; place-items:center; border:0; cursor:pointer; transition:transform .2s ease,background .2s ease; }
+.catalog-arrow { position:absolute; z-index:2; top:50%; width:44px; height:44px; border-radius:50%; transform:translateY(-50%); background:#123d2be8; color:#fff; font-size:2rem; line-height:1; box-shadow:0 4px 12px #09281b44; }
+.catalog-arrow:hover { background:#73c76a; color:#09281b; }
+#catalog-previous { left:12px; }
+#catalog-next { right:12px; }
+.catalog-navigation { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:8px; overflow:visible; }
+.catalog-filter-track { display:flex; gap:10px; min-width:0; overflow-x:auto; scroll-behavior:smooth; scrollbar-width:none; padding:0 0 8px; }
+.catalog-filter-arrow { width:28px; height:28px; border-radius:50%; background:#123d2b; color:#fff; font-size:1.45rem; line-height:1; }
+.catalog-filter-arrow:hover { background:#73c76a; color:#09281b; transform:scale(1.08); }
+.hidden { display:none!important; }
+@media (max-width:900px) { .catalog-carousel .catalog-category-card { flex-basis:calc((100% - 16px)/2); } }
+@media (max-width:550px) { .catalog-grid .catalog-category-card,.catalog-carousel .catalog-category-card { min-height:280px; height:280px; } .catalog-carousel .catalog-category-card { flex-basis:calc(100% - 42px); } .catalog-arrow { width:38px; height:38px; } }
