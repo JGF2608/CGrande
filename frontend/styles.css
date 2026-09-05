@@ -192,3 +192,9 @@ footer { background:var(--forest-deep); }
 .social-button:hover { background:#a8df87; color:#09281b; transform:translateY(-3px); }
 @media (max-width:800px) { .site-footer { padding:48px 6% 28px; } .footer-main { grid-template-columns:repeat(2,1fr); gap:32px 24px; } .footer-brand { grid-column:1 / -1; } .footer-small { margin-top:22px!important; } }
 @media (max-width:480px) { .footer-main { grid-template-columns:1fr; } .footer-brand { grid-column:auto; } }
+
+/* El carrusel ocupa todo el bloque inicial, sin panel lateral. */
+.hero { display:block; min-height:0; }
+.hero-visual { width:100%; height:clamp(420px,48vw,760px); min-height:0; }
+.hero-visual .promo-carousel { min-height:inherit; }
+@media (max-width:700px) { .hero-visual { height:clamp(300px,76vw,480px); } }
