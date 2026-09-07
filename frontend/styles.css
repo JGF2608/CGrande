@@ -19,7 +19,7 @@
 @media (hover:none){.product-card .product-details{opacity:1;background:linear-gradient(transparent 18%,rgba(16,42,67,.93));justify-content:flex-end}.product-card .product-name{display:none}}
 
 /* Estilo editorial de la web pública: una identidad más cálida y visual. */
-:root { --forest:#123d2b; --forest-deep:#09281b; --leaf:#73c76a; --cream:#f4f1e9; --ink:#173329; --mist:#e7eee7; }
+:root { --forest:#123d2b; --forest-deep:#09281b; --leaf:#73c76a; --golden:#D6A84F; --cream:#f4f1e9; --ink:#173329; --mist:#e7eee7; }
 body { background:#fff; color:var(--ink); font-family:"Segoe UI",Arial,sans-serif; }
 body > header { padding:18px 6%; background:rgba(9,40,27,.96); box-shadow:none; backdrop-filter:blur(14px); }
 body > header .logo { color:#fff; font-size:1.05rem; letter-spacing:.08em; }
@@ -331,4 +331,5 @@ input[type="file"] { width:100%; min-width:0; max-width:100%; padding-right:6px;
 .kpi-section .eyebrow { margin:0; }
 .kpi-section .kpi-list { margin-top:22px; }
 .kpi-section .kpi-card { padding:20px 24px; }
+#empresa .eyebrow,#socios .eyebrow,#proposito .eyebrow,#historia .eyebrow,.kpi-section .eyebrow,.site-footer h3 { color:var(--golden); }
 @media (max-width:800px) { .kpi-section { padding-top:48px; padding-bottom:48px; } }
