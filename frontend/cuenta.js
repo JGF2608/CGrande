@@ -1,3 +1,4 @@
+/* CUENTA DEL CLIENTE: datos personales, ubicaciones, cotizaciones, pedidos y contraseña. */
 let products=[],quotes=[],quoteBeingEdited=null,departments=[],provinces=[];
 const clientForm=document.querySelector('#client-form'),field=name=>clientForm.elements.namedItem(name),documentTypeField=document.querySelector('#client-document-type'),documentNumberField=document.querySelector('#client-document-number'),departmentField=document.querySelector('#client-department'),provinceField=document.querySelector('#client-province');
 const escapeHtml=(value='')=>String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));

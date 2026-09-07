@@ -1,3 +1,7 @@
+/* PÁGINA PÚBLICA
+ * Catálogo y filtros, carrusel de banners, socios, indicadores, línea de tiempo,
+ * puntos de recojo/Google Maps, formulario de cotización, redes y WhatsApp.
+ */
 const productList = document.querySelector('#product-list');
 const productSelect = document.querySelector('#product-select');
 const kpiList = document.querySelector('#kpi-list');

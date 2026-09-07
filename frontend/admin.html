@@ -8,9 +8,11 @@
   </style>
 </head>
 <body>
+  <!-- PANEL DE ADMINISTRACIÓN: el índice lateral se genera en admin.js. Cada bloque <details> corresponde a una opción del panel. -->
   <header><a class="logo" href="/">COSTA GRANDE</a><nav><a href="/">Ver web pública</a></nav></header>
   <aside class="section-index" aria-label="Índice de administración"><strong>Índice</strong><nav id="admin-section-index"></nav></aside>
   <main class="admin-main">
+    <!-- COMPONENTES: dashboard web, catálogo, clientes, ventas, banners, contactos, puntos de recojo, socios, línea de tiempo, redes, indicadores, correos, cotizaciones y pedidos. -->
     <p class="eyebrow">PANEL LOCAL</p><h1>Administración</h1><p class="admin-intro">Gestiona los datos guardados en la base de datos local. Haz clic en cada sección para abrirla o cerrarla.</p>
 
     <details id="analytics-dashboard-section" class="admin-section"><summary>Dashboard de KPIs de página web</summary><div class="section-content"><p id="analytics-dashboard-message" class="dashboard-message">Cargando indicadores…</p><div id="analytics-dashboard-content" class="hidden"><div id="analytics-dashboard-totals" class="dashboard-totals"></div><div class="dashboard-charts"><article class="admin-card dashboard-chart"><h3>Comportamiento: categorías exploradas</h3><div id="analytics-categories-chart"></div></article><article class="admin-card dashboard-chart"><h3>Catálogo: productos por categoría</h3><div id="analytics-products-category-chart"></div></article><article class="admin-card dashboard-chart"><h3>Comercial: cotizaciones por estado</h3><div id="analytics-quotes-chart"></div></article><article class="admin-card dashboard-chart"><h3>Operación: pedidos por estado</h3><div id="analytics-orders-chart"></div></article><article class="admin-card dashboard-chart"><h3>Cobertura: clientes por departamento</h3><div id="analytics-clients-chart"></div></article><article class="admin-card dashboard-chart"><h3>Interés comercial: cotizaciones por producto</h3><div id="analytics-quote-products-chart"></div></article></div></div></div></details>
