@@ -15,6 +15,7 @@ const sessionDurationMs = 8 * 60 * 60 * 1000;
 
 function sendJson(response, status, data) { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); response.end(JSON.stringify(data)); }
 function serveFile(response, fileName, contentType) { fs.readFile(path.join(frontendPath, fileName), (error, content) => { if (error) { response.writeHead(404); response.end('No encontrado'); return; } response.writeHead(200, { 'Content-Type': contentType }); response.end(content); }); }
+function serveDataImage(response, image) { const match = String(image || '').match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/); if (!match) { response.writeHead(404); response.end('Imagen no encontrada'); return; } response.writeHead(200, { 'Content-Type': match[1], 'Cache-Control': 'public, max-age=86400' }); response.end(Buffer.from(match[2], 'base64')); }
 function readBody(request) { return new Promise((resolve, reject) => { let body = ''; request.on('data', (chunk) => { body += chunk; }); request.on('end', () => { try { resolve(JSON.parse(body || '{}')); } catch { reject(new Error('Datos inválidos')); } }); }); }
 function validateClient(client) {
   if (!client.name || !client.email) return 'Completa nombre y correo.';
@@ -63,6 +64,9 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/my/orders') { const session = requireRole(request, response, 'cliente'); return session && sendJson(response, 200, database.listOrdersByClient(session.clientId)); }
     if (request.method === 'GET' && url.pathname === '/api/products') return sendJson(response, 200, database.listProducts());
     if (request.method === 'GET' && url.pathname === '/api/categories') return sendJson(response, 200, database.listCategories());
+    if (request.method === 'GET' && url.pathname === '/api/catalog') return sendJson(response, 200, database.listCatalogSummary());
+    if (request.method === 'GET' && /^\/api\/catalog\/categories\/\d+\/products$/.test(url.pathname)) return sendJson(response, 200, database.listCatalogProducts(Number(url.pathname.split('/')[4])));
+    if (request.method === 'GET' && /^\/api\/catalog\/categories\/\d+\/image$/.test(url.pathname)) return serveDataImage(response, database.getCategoryImage(Number(url.pathname.split('/')[4])));
     if (request.method === 'GET' && url.pathname === '/api/company-settings') return sendJson(response, 200, database.getCompanySettings());
     if (request.method === 'GET' && url.pathname === '/api/email/test-status') { if (!requireRole(request, response, 'administracion')) return; return sendJson(response, 200, email.getEmailConfigurationStatus()); }
     if (request.method === 'PATCH' && url.pathname === '/api/email/configuration') { if (!requireRole(request, response, 'administracion')) return; return sendJson(response, 200, email.saveEmailConfiguration(await readBody(request))); }
