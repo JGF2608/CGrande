@@ -63,6 +63,11 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .company { position:relative; overflow:hidden; }
 .company::after { content:""; position:absolute; width:360px; height:360px; border-radius:50%; border:55px solid #d9e5d6; right:-120px; top:-100px; opacity:.6; }
 .company > * { position:relative; z-index:1; }
+.company-content { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr); align-items:center; gap:50px; }
+.company-copy p:not(.eyebrow) { max-width:760px; }
+.company-visual { position:relative; min-height:350px; overflow:hidden; }
+.company-visual::before { content:""; position:absolute; inset:8% 2%; background:#d8e7d5; filter:blur(30px); opacity:.8; }
+.company-visual img { position:relative; z-index:1; display:block; width:100%; height:350px; object-fit:cover; object-position:center; -webkit-mask-image:radial-gradient(ellipse 87% 88% at 50% 50%,#000 63%,transparent 100%); mask-image:radial-gradient(ellipse 87% 88% at 50% 50%,#000 63%,transparent 100%); }
 .kpi-section { background:var(--forest-deep); background-image:radial-gradient(circle at 8% 85%,#73c76a33 0 3%,transparent 3.2%); }
 .kpi-section .eyebrow,.kpi-value { color:#a8df87; }
 .kpi-card { border:1px solid #ffffff2a; border-radius:0; background:#ffffff0a; transition:background .25s ease,transform .25s ease; }
@@ -110,7 +115,7 @@ footer { background:var(--forest-deep); }
 /* Animación discreta al recorrer el contenido. */
 .section:not(.hero) { opacity:0; transform:translateY(26px); transition:opacity .65s ease,transform .65s ease; }
 .section:not(.hero).is-visible { opacity:1; transform:none; }
-@media (max-width:800px) { .hero { min-height:0; grid-template-columns:1fr; } .hero-visual { min-height:280px; order:-1; } .hero-message { padding:72px 7% 64px; } .hero-message::before { right:24px; top:22px; } .section { padding:76px 6%; } }
+@media (max-width:800px) { .hero { min-height:0; grid-template-columns:1fr; } .hero-visual { min-height:280px; order:-1; } .hero-message { padding:72px 7% 64px; } .hero-message::before { right:24px; top:22px; } .section { padding:76px 6%; } .company-content { grid-template-columns:1fr; gap:22px; } .company-visual { min-height:270px; } .company-visual img { height:270px; } }
 @media (max-width:700px) {
   body > header { padding:16px 6%; }
   .public-header { position:sticky; }

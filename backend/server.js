@@ -129,6 +129,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/login.js') return serveFile(response, 'login.js', 'application/javascript; charset=utf-8');
     if (request.method === 'GET' && url.pathname === '/cuenta.js') return serveFile(response, 'cuenta.js', 'application/javascript; charset=utf-8');
     if (request.method === 'GET' && url.pathname === '/ventas.js') return serveFile(response, 'ventas.js', 'application/javascript; charset=utf-8');
+    if (request.method === 'GET' && url.pathname === '/assets/almacen-costa-grande.png') return serveFile(response, 'assets/almacen-costa-grande.png', 'image/png');
     response.writeHead(404); response.end('No encontrado');
   } catch (error) { sendJson(response, 400, { message: error.message || 'No pudimos procesar la solicitud.' }); }
 });
