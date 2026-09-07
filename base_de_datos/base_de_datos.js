@@ -140,10 +140,28 @@ function listOrders() { return database.prepare("SELECT p.id, p.codigo AS code, 
 function getOrderById(id) { return listOrders().find((order) => order.id === id); }
 function getOrderByCode(code) { return listOrders().find((order) => order.code === code); }
 function updateOrderStatus(code, status) { const order = database.prepare('SELECT id FROM pedidos WHERE codigo = ?').get(code); if (!order) return null; database.prepare('UPDATE pedidos SET estado = ? WHERE id = ?').run(status, order.id); database.prepare('INSERT INTO historial_estados_pedido (id_pedido, estado) VALUES (?, ?)').run(order.id, status); return getOrderById(order.id); }
+function getAnalyticsSnapshot() {
+  const total = (statement) => Number(database.prepare(statement).get().total || 0);
+  const distribution = (statement) => database.prepare(statement).all();
+  return {
+    totals: {
+      clients: total('SELECT COUNT(*) AS total FROM clientes WHERE activo = 1'),
+      products: total('SELECT COUNT(*) AS total FROM productos WHERE activo = 1'),
+      quotes: total('SELECT COUNT(*) AS total FROM cotizaciones'),
+      orders: total('SELECT COUNT(*) AS total FROM pedidos'),
+    },
+    productsByCategory: distribution("SELECT c.nombre AS label, COUNT(p.id) AS value FROM categorias_producto c LEFT JOIN productos p ON p.id_categoria = c.id AND p.activo = 1 WHERE c.activo = 1 GROUP BY c.id, c.nombre ORDER BY value DESC, label"),
+    clientsByDepartment: distribution("SELECT COALESCE(NULLIF(departamento, ''), 'Sin registrar') AS label, COUNT(*) AS value FROM clientes WHERE activo = 1 GROUP BY COALESCE(NULLIF(departamento, ''), 'Sin registrar') ORDER BY value DESC, label"),
+    quotesByStatus: distribution('SELECT estado AS label, COUNT(*) AS value FROM cotizaciones GROUP BY estado ORDER BY value DESC, label'),
+    ordersByStatus: distribution('SELECT estado AS label, COUNT(*) AS value FROM pedidos GROUP BY estado ORDER BY value DESC, label'),
+    quotesByProduct: distribution("SELECT dc.descripcion_producto AS label, COUNT(*) AS value FROM detalle_cotizaciones dc JOIN cotizaciones c ON c.id = dc.id_cotizacion GROUP BY dc.descripcion_producto ORDER BY value DESC, label LIMIT 8"),
+    monthlyGrowth: distribution("SELECT strftime('%Y-%m', fecha_creacion) AS month, 'Cotizaciones' AS label, COUNT(*) AS value FROM cotizaciones WHERE fecha_creacion >= date('now', '-5 months', 'start of month') GROUP BY month UNION ALL SELECT strftime('%Y-%m', fecha_creacion) AS month, 'Pedidos' AS label, COUNT(*) AS value FROM pedidos WHERE fecha_creacion >= date('now', '-5 months', 'start of month') GROUP BY month ORDER BY month, label"),
+  };
+}
 
 configureOrderUnits();
 initializeData();
 initializeTimeline();
 removeDefaultBanners();
 initializeAttentionPoints();
-module.exports = { listProducts, listCategories, createCategory, updateCategory, deleteCategory, listUnits, getCompanySettings, updateWhatsAppNumber, updateSocialNetworks, updateHistoricalClients, getKpis, listAdditionalKpis, createAdditionalKpi, deleteAdditionalKpi, listTimelineItems, createTimelineItem, updateTimelineItem, deleteTimelineItem, listBanners, listBannersAdmin, createBanner, updateBanner, deleteBanner, listCommercialPartners, createCommercialPartner, updateCommercialPartner, deleteCommercialPartner, listAttentionPoints, createAttentionPoint, updateAttentionPoint, deleteAttentionPoint, createProduct, updateProduct, deleteProduct, listClients, createClient, updateClient, deleteClient, createSalesUser, listSalesUsers, updateSalesUser, deleteSalesUser, authenticate, changeOwnPassword, getClientById, updateOwnClient, listQuotesByClient, updateOwnQuote, updateQuoteAdmin, listOrdersByClient, createQuote, listQuotes, createOrderFromQuote, listOrders, getOrderByCode, updateOrderStatus };
+module.exports = { listProducts, listCategories, createCategory, updateCategory, deleteCategory, listUnits, getCompanySettings, updateWhatsAppNumber, updateSocialNetworks, updateHistoricalClients, getKpis, listAdditionalKpis, createAdditionalKpi, deleteAdditionalKpi, listTimelineItems, createTimelineItem, updateTimelineItem, deleteTimelineItem, listBanners, listBannersAdmin, createBanner, updateBanner, deleteBanner, listCommercialPartners, createCommercialPartner, updateCommercialPartner, deleteCommercialPartner, listAttentionPoints, createAttentionPoint, updateAttentionPoint, deleteAttentionPoint, createProduct, updateProduct, deleteProduct, listClients, createClient, updateClient, deleteClient, createSalesUser, listSalesUsers, updateSalesUser, deleteSalesUser, authenticate, changeOwnPassword, getClientById, updateOwnClient, listQuotesByClient, updateOwnQuote, updateQuoteAdmin, listOrdersByClient, createQuote, listQuotes, createOrderFromQuote, listOrders, getOrderByCode, updateOrderStatus, getAnalyticsSnapshot };

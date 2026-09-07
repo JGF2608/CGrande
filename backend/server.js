@@ -4,6 +4,8 @@ const path = require('path');
 const crypto = require('crypto');
 const database = require('../base_de_datos/base_de_datos');
 const email = require('./correo');
+const { createAnalyticsService } = require('./analytics/analytics-service');
+const analytics = createAnalyticsService({ getBusinessSnapshot: database.getAnalyticsSnapshot });
 
 const port = 3000;
 const frontendPath = path.join(__dirname, '..', 'frontend');
@@ -49,6 +51,9 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/auth/login') { const credentials = await readBody(request); const user = database.authenticate(credentials.email, credentials.password); if (!user) return sendJson(response, 401, { message: 'Correo o contraseña incorrectos.' }); const token = crypto.randomUUID(); sessions.set(token, { user, expiresAt: Date.now() + sessionDurationMs }); response.setHeader('Set-Cookie', `mvp_session=${token}; HttpOnly; SameSite=Lax; Max-Age=28800; Path=/`); return sendJson(response, 200, { user }); }
     if (request.method === 'POST' && url.pathname === '/api/auth/logout') { const token = (request.headers.cookie || '').split(';').map((item) => item.trim()).find((item) => item.startsWith('mvp_session='))?.split('=')[1]; if (token) sessions.delete(token); response.setHeader('Set-Cookie', 'mvp_session=; Max-Age=0; Path=/'); return sendJson(response, 200, { message: 'Sesión cerrada.' }); }
     if (request.method === 'GET' && url.pathname === '/api/auth/me') { const session = getSession(request); return session ? sendJson(response, 200, { user: session }) : sendJson(response, 401, { message: 'Sin sesión.' }); }
+    if (request.method === 'GET' && url.pathname === '/api/analytics/config') return sendJson(response, 200, { enabled: analytics.enabled() });
+    if (request.method === 'POST' && url.pathname === '/api/analytics/events') { const event = await readBody(request); analytics.recordEvent(event); return sendJson(response, 202, { accepted: analytics.enabled() }); }
+    if (request.method === 'GET' && url.pathname === '/api/analytics/dashboard') { if (!requireRole(request, response, 'administracion')) return; const dashboard = analytics.getDashboard(); return dashboard ? sendJson(response, 200, dashboard) : sendJson(response, 403, { message: 'El módulo de analítica está desactivado.' }); }
     if (request.method === 'GET' && url.pathname === '/api/my/client') { const session = requireRole(request, response, 'cliente'); return session && sendJson(response, 200, database.getClientById(session.clientId)); }
     if (request.method === 'PATCH' && url.pathname === '/api/my/client') { const session = requireRole(request, response, 'cliente'); if (!session) return; const client = await readBody(request); const error = validateClient(client); if (error) return sendJson(response, 400, { message: error }); return sendJson(response, 200, database.updateOwnClient(session.clientId, client)); }
     if (request.method === 'POST' && url.pathname === '/api/my/password') { const session = requireRoles(request, response, ['cliente', 'ventas']); if (!session) return; const credentials = await readBody(request); if (!credentials.password || credentials.password.length < 8) return sendJson(response, 400, { message: 'La nueva contraseña debe tener al menos 8 caracteres.' }); if (!database.changeOwnPassword(session.id, session.role, credentials.password)) return sendJson(response, 400, { message: 'No pudimos cambiar la contraseña.' }); session.mustChangePassword = false; return sendJson(response, 200, { message: 'Contraseña actualizada.' }); }
