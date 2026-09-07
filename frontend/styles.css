@@ -65,9 +65,9 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .company > * { position:relative; z-index:1; }
 .company-content { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr); align-items:center; gap:50px; }
 .company-copy p:not(.eyebrow) { max-width:760px; }
-.company-visual { position:relative; min-height:350px; overflow:hidden; isolation:isolate; border:0; border-radius:52px 18px 52px 18px; background:transparent; box-shadow:none; }
+.company-visual { position:relative; min-height:350px; overflow:visible; isolation:isolate; border:0; border-radius:0; background:transparent; box-shadow:none; }
 .company-visual::before,.company-visual::after { content:""; position:absolute; z-index:2; pointer-events:none; }
-.company-visual::before { inset:0; background:linear-gradient(90deg,var(--cream) 0%,transparent 13%,transparent 87%,var(--cream) 100%); }
+.company-visual::before { inset:0; background:radial-gradient(ellipse 24% 30% at 0 0,var(--cream) 2%,transparent 100%),radial-gradient(ellipse 24% 30% at 100% 0,var(--cream) 2%,transparent 100%),radial-gradient(ellipse 24% 30% at 0 100%,var(--cream) 2%,transparent 100%),radial-gradient(ellipse 24% 30% at 100% 100%,var(--cream) 2%,transparent 100%),linear-gradient(90deg,var(--cream) 0%,transparent 13%,transparent 87%,var(--cream) 100%); }
 .company-visual::after { inset:0; background:linear-gradient(0deg,var(--cream) 0%,transparent 16%,transparent 84%,var(--cream) 100%); }
 .company-visual img { display:block; width:100%; height:350px; object-fit:cover; object-position:center; }
 .kpi-section { background:var(--forest-deep); background-image:radial-gradient(circle at 8% 85%,#73c76a33 0 3%,transparent 3.2%); }
