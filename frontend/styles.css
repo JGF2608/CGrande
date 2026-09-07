@@ -204,9 +204,9 @@ footer { background:var(--forest-deep); }
 .site-footer h3 { margin:0 0 7px; color:#a8df87; font-size:1rem; }
 .footer-links a { width:max-content; color:#f3f8f2; text-decoration:none; font-size:.93rem; }
 .footer-links a:hover { color:#a8df87; text-decoration:underline; }
-.footer-contact { display:flex; align-items:center; gap:12px; margin-top:12px; padding-top:0; border-top:0; }
+.footer-contact { position:relative; display:block; margin-top:12px; padding-top:0; border-top:0; }
 .footer-contact div { display:grid; gap:0; line-height:1.2; }
-.footer-phone-icon { display:grid; width:40px; height:40px; flex:0 0 40px; place-items:center; border:1px solid #a8df87; border-radius:50%; color:#a8df87; }
+.footer-phone-icon { position:absolute; right:calc(100% + 12px); top:50%; display:grid; width:40px; height:40px; place-items:center; border:1px solid #a8df87; border-radius:50%; color:#a8df87; transform:translateY(-50%); }
 .footer-phone-icon svg { width:20px; height:20px; }
 .footer-contact small { color:#9bb29e; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; }
 .footer-links .footer-contact a { color:#fff; font-size:1.1rem; line-height:1.25; }
