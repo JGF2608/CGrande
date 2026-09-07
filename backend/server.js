@@ -27,7 +27,7 @@ function validateClient(client) {
   return null;
 }
 function validateSalesUser(user, requiresTemporaryPassword = true) {
-  if (!user.name || !user.email || !user.userCode) return 'Completa nombre, correo y código de usuario.';
+  if (!user.name || !user.email) return 'Completa nombre y correo.';
   if (!/^\d{9}$/.test(String(user.phone || ''))) return 'El teléfono debe tener exactamente 9 dígitos.';
   if (!/^\d{8,11}$/.test(String(user.documentNumber || ''))) return 'El número de documento debe tener entre 8 y 11 dígitos.';
   if (requiresTemporaryPassword && (!user.temporaryPassword || user.temporaryPassword.length < 8)) return 'La contraseña temporal debe tener al menos 8 caracteres.';
