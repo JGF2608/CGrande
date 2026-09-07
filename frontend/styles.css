@@ -75,9 +75,12 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .timeline-dot.active { background:var(--leaf); }
 .attention-section { background:var(--forest); }
 .attention-section h2 { color:#fff; }
-.attention-contact { display:flex; align-items:baseline; gap:14px; margin:18px 0 4px; color:#dcebd9; }
-.attention-contact span { color:#a8df87; font-size:.78rem; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
-.attention-contact a { color:#fff; font-size:1.35rem; font-weight:800; text-decoration:none; }
+.attention-contact { display:flex; align-items:center; gap:13px; margin:22px 0 4px; color:#dcebd9; }
+.phone-icon { display:grid; width:48px; height:48px; place-items:center; border:1px solid #a8df87; border-radius:50%; color:#a8df87; }
+.phone-icon svg { width:25px; height:25px; }
+.attention-contact div { display:grid; gap:1px; }
+.attention-contact strong { color:#a8df87; font-size:.85rem; letter-spacing:.08em; text-transform:uppercase; }
+.attention-contact a { color:#fff; font-size:1.25rem; font-family:Georgia,serif; text-decoration:none; }
 .attention-contact a:hover { color:#a8df87; }
 .attention-grid article { color:var(--ink); }
 .split { background:#f8faf7; }
@@ -188,9 +191,12 @@ footer { background:var(--forest-deep); }
 .site-footer h3 { margin:0 0 7px; color:#a8df87; font-size:1rem; }
 .footer-links a { width:max-content; color:#f3f8f2; text-decoration:none; font-size:.93rem; }
 .footer-links a:hover { color:#a8df87; text-decoration:underline; }
-.footer-contact { display:grid; gap:3px; margin-top:14px; padding-top:14px; border-top:1px solid #ffffff1f; }
-.footer-contact small { color:#9bb29e; font-size:.75rem; text-transform:uppercase; letter-spacing:.08em; }
-.footer-links .footer-contact a { color:#a8df87; font-weight:800; font-size:1.05rem; }
+.footer-contact { display:flex; align-items:center; gap:9px; margin-top:14px; padding-top:14px; border-top:1px solid #ffffff1f; }
+.footer-contact div { display:grid; gap:1px; }
+.footer-phone-icon { display:grid; width:28px; height:28px; place-items:center; border:1px solid #a8df87; border-radius:50%; color:#a8df87; }
+.footer-phone-icon svg { width:15px; height:15px; }
+.footer-contact small { color:#9bb29e; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; }
+.footer-links .footer-contact a { color:#fff; font-size:1rem; }
 .footer-social p { margin:0 0 15px; color:#cfddcf; font-size:.92rem; }
 .footer-social small { display:block; margin-top:14px; color:#9bb29e; font-size:.78rem; line-height:1.45; }
 .social-buttons { display:flex; gap:10px; }
