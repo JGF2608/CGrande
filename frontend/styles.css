@@ -197,7 +197,7 @@ footer { background:var(--forest-deep); }
 .site-footer h3 { margin:0 0 7px; color:#a8df87; font-size:1rem; }
 .footer-links a { width:max-content; color:#f3f8f2; text-decoration:none; font-size:.93rem; }
 .footer-links a:hover { color:#a8df87; text-decoration:underline; }
-.footer-contact { display:flex; align-items:center; gap:9px; margin-top:14px; padding-top:14px; border-top:0; }
+.footer-contact { display:flex; align-items:center; gap:9px; margin-top:7px; padding-top:0; border-top:0; }
 .footer-contact div { display:grid; gap:1px; }
 .footer-phone-icon { display:grid; width:28px; height:28px; place-items:center; border:1px solid #a8df87; border-radius:50%; color:#a8df87; }
 .footer-phone-icon svg { width:15px; height:15px; }
