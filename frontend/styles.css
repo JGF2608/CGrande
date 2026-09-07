@@ -311,3 +311,11 @@ input[type="file"] { width:100%; min-width:0; max-width:100%; padding-right:6px;
   .admin-section,.section-content,.admin-card,.card { max-width:100%; }
   input[type="file"] { font-size:.75rem; }
 }
+
+/* Bloque de cifras: mantiene protagonismo sin dejar espacio vertical innecesario. */
+.kpi-section { padding-top:56px; padding-bottom:56px; }
+.kpi-section h2 { display:none; }
+.kpi-section .eyebrow { margin:0; }
+.kpi-section .kpi-list { margin-top:22px; }
+.kpi-section .kpi-card { padding:20px 24px; }
+@media (max-width:800px) { .kpi-section { padding-top:48px; padding-bottom:48px; } }
