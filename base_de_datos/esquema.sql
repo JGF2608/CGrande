@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS unidades_medida (
 CREATE TABLE IF NOT EXISTS configuracion_empresa (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   numero_whatsapp TEXT,
+  telefono_contacto TEXT,
   facebook_url TEXT,
   instagram_url TEXT,
   linkedin_url TEXT,
