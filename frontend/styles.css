@@ -54,7 +54,7 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .product-card { border:0; border-radius:0; min-height:410px; box-shadow:none; }
 .product-card .product-photo,.product-card .product-icon { min-height:410px; }
 .product-card:hover,.product-card:focus-within { transform:translateY(-8px); box-shadow:0 20px 36px #02263d33; }
-.product-name { padding:58px 26px 25px; background:linear-gradient(transparent,rgba(9,40,27,.96)); }
+.product-name { padding:58px 26px 25px; background:linear-gradient(transparent,rgba(2,38,61,.96)); }
 .product-details { background:linear-gradient(150deg,rgba(2,38,61,.96),rgba(4,52,83,.93)); }
 .product-details .category { color:var(--blue-soft); }
 .button { background:var(--leaf); color:var(--forest-deep); border-radius:999px; padding:12px 21px; transition:transform .22s ease,background .22s ease; }
