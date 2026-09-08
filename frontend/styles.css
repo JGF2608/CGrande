@@ -338,4 +338,5 @@ input[type="file"] { width:100%; min-width:0; max-width:100%; padding-right:6px;
 #historia h2 { color:var(--leaf); }
 #historia h2 span { color:var(--golden); }
 #contacto h2 { color:var(--golden); }
+#pedido h2 { color:var(--golden); }
 @media (max-width:800px) { .kpi-section { padding-top:48px; padding-bottom:48px; } }
