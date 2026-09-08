@@ -27,6 +27,7 @@ body > header .logo { color:#fff; font-size:1.05rem; letter-spacing:.08em; }
 .company-logo-image { display:block; width:auto; height:54px; object-fit:contain; }
 body > header nav { align-items:center; gap:20px; }
 body > header nav a, body > header .session-access { color:#edf6fa; font-weight:600; }
+.public-header nav .store-finder-link { color:var(--golden); font-weight:800; }
 body > header nav a:not(.session-access) { position:relative; }
 body > header nav a:not(.session-access)::after { content:""; position:absolute; left:0; bottom:-7px; height:2px; width:0; background:var(--leaf); transition:width .25s ease; }
 body > header nav a:not(.session-access):hover::after { width:100%; }
