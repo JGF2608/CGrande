@@ -206,6 +206,7 @@ footer { background:var(--forest-deep); }
 .footer-links a { width:max-content; color:#f3f8fb; text-decoration:none; font-size:.93rem; }
 .footer-links a:hover { color:var(--blue-soft); text-decoration:underline; }
 .footer-contact { position:relative; display:block; width:max-content; margin-top:12px; padding-top:0; border-top:0; }
+.footer-contact + .footer-contact { margin-top:14px; }
 .footer-contact div { display:grid; gap:0; line-height:1.2; }
 .footer-phone-icon { position:absolute; right:calc(100% + 12px); top:50%; display:grid; width:40px; height:40px; place-items:center; border:1px solid var(--blue-soft); border-radius:50%; color:var(--blue-soft); transform:translateY(-50%); }
 .footer-phone-icon svg { width:20px; height:20px; }
