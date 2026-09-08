@@ -337,4 +337,5 @@ input[type="file"] { width:100%; min-width:0; max-width:100%; padding-right:6px;
 #empresa h2,#socios h2,#proposito h2,#historia h2 { color:var(--golden); }
 #historia h2 { color:var(--leaf); }
 #historia h2 span { color:var(--golden); }
+#contacto h2 { color:var(--golden); }
 @media (max-width:800px) { .kpi-section { padding-top:48px; padding-bottom:48px; } }
