@@ -335,8 +335,8 @@ input[type="file"] { width:100%; min-width:0; max-width:100%; padding-right:6px;
 .kpi-section .kpi-card h3 { color:var(--leaf); }
 .kpi-section .kpi-card p { color:#d9e2ec; }
 #empresa h2,#socios h2,#proposito h2,#historia h2 { color:var(--golden); }
-#historia h2 { color:var(--leaf); }
-#historia h2 span { color:var(--golden); }
+#historia h2 { color:var(--leaf); font-weight:400; }
+#historia h2 span { color:var(--golden); font-weight:800; }
 #contacto h2 { color:var(--golden); }
 #pedido h2 { color:var(--golden); }
 #cotizacion h2 { color:var(--golden); }
