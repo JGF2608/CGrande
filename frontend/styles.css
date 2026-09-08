@@ -21,7 +21,7 @@
 /* Estilo editorial de la web pública: una identidad más cálida y visual. */
 :root { --forest:#043453; --forest-deep:#02263d; --leaf:#247a9b; --blue-strong:#0a5c82; --blue-soft:#6fafc4; --golden:#d5aa2c; --gold-soft:#e8ca73; --cream:#f4f1e9; --ink:#123247; --mist:#e6f2f6; }
 body { background:#fff; color:var(--ink); font-family:"Segoe UI",Arial,sans-serif; }
-body > header { padding:18px 6%; background:rgba(9,40,27,.96); box-shadow:none; backdrop-filter:blur(14px); }
+body > header { padding:18px 6%; background:rgba(4,52,83,.96); box-shadow:none; backdrop-filter:blur(14px); }
 body > header .logo { color:#fff; font-size:1.05rem; letter-spacing:.08em; }
 body > header nav { align-items:center; gap:20px; }
 body > header nav a, body > header .session-access { color:#edf6fa; font-weight:600; }
@@ -41,7 +41,7 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .hero .button:hover { background:var(--blue-soft); transform:translateY(-3px); }
 .hero .button span { font-size:1.2rem; margin-left:7px; }
 .hero-visual { min-height:100%; position:relative; overflow:hidden; background:linear-gradient(145deg,rgba(4,52,83,.12),rgba(2,38,61,.45)), radial-gradient(circle at 70% 30%,#6fafc4 0 2%,transparent 2.3%), linear-gradient(130deg,#6fafc4,#0a5c82 48%,#043453); background-size:auto,180px 180px,auto; }
-.hero-visual.has-image { background-image:linear-gradient(145deg,rgba(9,40,27,.15),rgba(9,40,27,.67)), var(--hero-image); background-size:cover; background-position:center; }
+.hero-visual.has-image { background-image:linear-gradient(145deg,rgba(4,52,83,.15),rgba(2,38,61,.67)), var(--hero-image); background-size:cover; background-position:center; }
 .hero-visual > p { position:absolute; right:34px; bottom:30px; color:#fff; font-size:.72rem; letter-spacing:.18em; font-weight:700; writing-mode:vertical-rl; margin:0; }
 .hero-orbit { border:1px solid #ffffff55; position:absolute; border-radius:50%; }
 .hero-orbit-one { width:430px; height:430px; left:-150px; top:-120px; animation:float-orbit 8s ease-in-out infinite; }
@@ -55,7 +55,7 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .product-card .product-photo,.product-card .product-icon { min-height:410px; }
 .product-card:hover,.product-card:focus-within { transform:translateY(-8px); box-shadow:0 20px 36px #02263d33; }
 .product-name { padding:58px 26px 25px; background:linear-gradient(transparent,rgba(9,40,27,.96)); }
-.product-details { background:linear-gradient(150deg,rgba(9,40,27,.96),rgba(18,61,43,.93)); }
+.product-details { background:linear-gradient(150deg,rgba(2,38,61,.96),rgba(4,52,83,.93)); }
 .product-details .category { color:var(--blue-soft); }
 .button { background:var(--leaf); color:var(--forest-deep); border-radius:999px; padding:12px 21px; transition:transform .22s ease,background .22s ease; }
 .button:hover { background:var(--blue-soft); transform:translateY(-2px); }
