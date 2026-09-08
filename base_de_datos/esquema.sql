@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS puntos_atencion (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT NOT NULL,
   direccion TEXT NOT NULL,
+  horario_atencion TEXT NOT NULL DEFAULT '7am a 6pm',
   latitud REAL,
   longitud REAL,
   activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1)),

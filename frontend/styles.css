@@ -185,6 +185,7 @@ footer { background:var(--forest-deep); }
 .attention-point:hover,.attention-point.selected { background:#ffffff20; transform:translateX(4px); }
 .attention-point h3 { margin:0 0 4px; color:#fff; font-size:1rem; }
 .attention-point p { margin:0 0 12px; color:#d8eaf1; font-size:.9rem; }
+.attention-point .attention-schedule { margin-top:-4px; color:var(--blue-soft); font-weight:700; }
 .attention-point div { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .attention-point a,.attention-focus { color:var(--blue-soft); font:inherit; font-size:.86rem; font-weight:700; text-decoration:none; background:none; border:0; padding:0; cursor:pointer; }
 .attention-point a:hover,.attention-focus:hover { color:#fff; text-decoration:underline; }
