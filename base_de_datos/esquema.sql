@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS configuracion_empresa (
   instagram_url TEXT,
   linkedin_url TEXT,
   firma_correo TEXT,
+  sobre_nosotros_descripcion TEXT,
+  sobre_nosotros_imagen TEXT,
   clientes_historicos INTEGER NOT NULL DEFAULT 0 CHECK (clientes_historicos >= 0),
   fecha_actualizacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
