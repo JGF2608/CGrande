@@ -332,6 +332,7 @@ input[type="file"] { width:100%; min-width:0; max-width:100%; padding-right:6px;
 .kpi-section .kpi-list { margin-top:22px; }
 .kpi-section .kpi-card { padding:20px 24px; }
 .kpi-section .kpi-value { color:var(--golden); }
-.kpi-section .kpi-card h3,.kpi-section .kpi-card p { color:var(--leaf); }
+.kpi-section .kpi-card h3 { color:var(--leaf); }
+.kpi-section .kpi-card p { color:#d9e2ec; }
 #empresa h2,#socios h2,#proposito h2,#historia h2 { color:var(--golden); }
 @media (max-width:800px) { .kpi-section { padding-top:48px; padding-bottom:48px; } }
