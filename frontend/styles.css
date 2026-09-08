@@ -23,6 +23,8 @@
 body { background:#fff; color:var(--ink); font-family:"Segoe UI",Arial,sans-serif; }
 body > header { padding:18px 6%; background:rgba(4,52,83,.96); box-shadow:none; backdrop-filter:blur(14px); }
 body > header .logo { color:#fff; font-size:1.05rem; letter-spacing:.08em; }
+.public-header .logo,.footer-logo { display:inline-flex; align-items:center; width:max-content; padding:3px 6px; border-radius:4px; background:#fff; }
+.company-logo-image { display:block; width:auto; height:54px; object-fit:contain; }
 body > header nav { align-items:center; gap:20px; }
 body > header nav a, body > header .session-access { color:#edf6fa; font-weight:600; }
 body > header nav a:not(.session-access) { position:relative; }
@@ -199,6 +201,7 @@ footer { background:var(--forest-deep); }
 .site-footer { padding:64px 7% 34px; background:#011b2b; color:#e7f1f6; }
 .footer-main { display:grid; grid-template-columns:1.5fr repeat(2,.75fr) 1fr; gap:42px; max-width:1380px; margin:0 auto; }
 .footer-logo { display:inline-block; color:#fff; font-size:1.45rem; font-weight:900; letter-spacing:1.5px; text-decoration:none; }
+.footer-logo .company-logo-image { height:82px; }
 .footer-brand p { max-width:310px; margin:14px 0; color:#c7dce5; }
 .footer-small { margin-top:34px!important; color:#8daab8!important; font-size:.8rem; }
 .footer-links { display:grid; align-content:start; gap:10px; }
@@ -318,6 +321,8 @@ input[type="file"] { width:100%; min-width:0; max-width:100%; padding-right:6px;
   .admin-row,.row { min-width:0; overflow-wrap:anywhere; }
 }
 @media (max-width:700px) {
+  .company-logo-image { height:46px; }
+  .footer-logo .company-logo-image { height:70px; }
   body > header:not(.public-header) { gap:10px; padding:14px 5%; }
   body > header:not(.public-header) nav { display:flex; gap:10px; flex-shrink:0; }
   body > header:not(.public-header) nav a,body > header:not(.public-header) nav button { font-size:.82rem; }

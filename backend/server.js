@@ -136,6 +136,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/cuenta.js') return serveFile(response, 'cuenta.js', 'application/javascript; charset=utf-8');
     if (request.method === 'GET' && url.pathname === '/ventas.js') return serveFile(response, 'ventas.js', 'application/javascript; charset=utf-8');
     if (request.method === 'GET' && url.pathname === '/assets/almacen-costa-grande.png') return serveFile(response, 'assets/almacen-costa-grande.png', 'image/png');
+    if (request.method === 'GET' && url.pathname === '/assets/logo-negocios-costa-grande.png') return serveFile(response, 'assets/logo-negocios-costa-grande.png', 'image/png');
     if (request.method === 'GET' && url.pathname === '/assets/catalog-loading-groceries-v3.webp') return serveFile(response, 'assets/catalog-loading-groceries-v3.webp', 'image/webp');
     response.writeHead(404); response.end('No encontrado');
   } catch (error) { sendJson(response, 400, { message: error.message || 'No pudimos procesar la solicitud.' }); }
