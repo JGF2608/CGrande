@@ -21,13 +21,24 @@
 /* Estilo editorial de la web pública: una identidad más cálida y visual. */
 :root { --forest:#043453; --forest-deep:#02263d; --leaf:#247a9b; --blue-strong:#0a5c82; --blue-soft:#6fafc4; --golden:#d5aa2c; --gold-soft:#e8ca73; --cream:#f4f1e9; --ink:#123247; --mist:#e6f2f6; }
 body { background:#fff; color:var(--ink); font-family:"Segoe UI",Arial,sans-serif; }
-body > header { padding:18px 6%; background:#043453; box-shadow:none; }
+body > header { padding:0 6%; background:#043453; box-shadow:none; }
 body > header .logo { color:#fff; font-size:1.05rem; letter-spacing:.08em; }
 .public-header .logo,.footer-logo { display:inline-flex; align-items:center; width:max-content; padding:3px 6px; border-radius:4px; background:#fff; }
 .company-logo-image { display:block; width:auto; height:54px; object-fit:contain; }
-body > header nav { align-items:center; gap:20px; }
+.public-header { display:grid; grid-template-rows:auto auto; }
+.public-header .header-top,.public-header .header-bottom { display:flex; align-items:center; }
+.public-header .header-top { min-height:76px; justify-content:space-between; border-bottom:1px solid #ffffff2b; }
+.public-header .header-bottom { min-height:58px; gap:28px; }
+body > header nav { display:flex; align-items:center; gap:26px; }
 body > header nav a, body > header .session-access { color:#edf6fa; font-weight:600; }
-.public-header nav .store-finder-link { color:var(--golden); font-weight:800; }
+.public-header .store-finder-link { color:var(--golden); font-weight:800; text-decoration:none; text-transform:uppercase; letter-spacing:.05em; font-size:.86rem; }
+.header-store-finder { display:inline-flex; align-items:center; gap:7px; }
+.header-store-finder span { color:var(--blue-soft); font-size:1.15rem; line-height:1; }
+.public-header nav a { font-size:.78rem; text-transform:uppercase; letter-spacing:.045em; }
+.header-social { margin-left:auto; align-items:center; }
+.header-social .social-button { width:30px; height:30px; border-color:transparent; background:transparent; color:var(--blue-soft); }
+.header-social .social-button svg { width:19px; height:19px; }
+.header-social .social-button:hover { background:#ffffff12; color:var(--gold-soft); transform:translateY(-2px); }
 body > header nav a:not(.session-access) { position:relative; }
 body > header nav a:not(.session-access)::after { content:""; position:absolute; left:0; bottom:-7px; height:2px; width:0; background:var(--leaf); transition:width .25s ease; }
 body > header nav a:not(.session-access):hover::after { width:100%; }
@@ -158,9 +169,13 @@ footer { background:var(--forest-deep); }
 .section:not(.hero).is-visible { opacity:1; transform:none; }
 @media (max-width:800px) { .hero { min-height:0; grid-template-columns:1fr; } .hero-visual { min-height:280px; order:-1; } .hero-message { padding:72px 7% 64px; } .hero-message::before { right:24px; top:22px; } .section { padding:76px 6%; } .company-content { grid-template-columns:1fr; gap:22px; } .company-visual { min-height:270px; } .company-visual img { height:270px; } }
 @media (max-width:700px) {
-  body > header { padding:16px 6%; }
+  body > header { padding:0 6%; }
   .public-header { position:sticky; }
+  .public-header .header-top { min-height:68px; border-bottom:0; }
+  .public-header .header-bottom { min-height:0; }
+  .public-header .header-store-finder,.public-header .header-social { display:none; }
   .mobile-menu-toggle { display:grid; width:42px; height:42px; place-content:center; gap:5px; background:var(--leaf); border:0; border-radius:50%; cursor:pointer; }
+  .public-header .mobile-menu-toggle { position:absolute; top:13px; right:6%; }
   .mobile-menu-toggle span { display:block; width:18px; height:2px; background:var(--forest-deep); transition:transform .2s ease,opacity .2s ease; }
   .mobile-menu-toggle.is-open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
   .mobile-menu-toggle.is-open span:nth-child(2) { opacity:0; }
