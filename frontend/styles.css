@@ -72,6 +72,9 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .career-form { margin-top:28px; padding:24px; border:1px solid #cbdde5; border-radius:22px; background:#fff; opacity:0; transform:translateX(58px); transition:opacity .38s ease,transform .38s ease; }
 .careers-layout.is-form-open .career-form { opacity:1; transform:translateX(0); }
 .career-form input { border-radius:999px; padding:13px 17px; }
+.career-document-field { display:flex; align-items:stretch; }
+.career-document-field select { width:78px; border:1px solid #bcccdc; border-right:0; border-radius:999px 0 0 999px; padding:13px 10px 13px 16px; font:inherit; font-weight:700; background:#e6f2f6; color:var(--forest); }
+.career-document-field input { min-width:0; flex:1; border-radius:0 999px 999px 0; }
 .career-cv-field { display:grid; gap:8px; font-size:.9rem; font-weight:bold; }
 .career-file-input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
 .career-file-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
