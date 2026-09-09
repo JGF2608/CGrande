@@ -58,6 +58,10 @@
         <p>Para proteger la información de tus pedidos, el seguimiento está disponible únicamente después de iniciar sesión.</p>
         <a id="tracking-access" class="button" href="/login">Iniciar sesión para ver mis pedidos</a>
       </section>
+      <section id="trabaja-con-nosotros" class="section careers">
+        <div id="career-invitation"><p class="eyebrow">TRABAJA CON NOSOTROS</p><h2>¿Quieres formar parte de nuestro equipo?</h2><p>Envíanos tu información y CV para considerarte en futuras oportunidades.</p><button id="open-job-application" class="button" type="button">Postular ahora</button></div>
+        <form id="job-application-form" class="career-form hidden" enctype="multipart/form-data"><div class="form-grid"><label>Nombres<input name="firstName" maxlength="100" required autocomplete="given-name" /></label><label>Apellidos<input name="lastName" maxlength="100" required autocomplete="family-name" /></label><label>DNI<input name="dni" inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" required placeholder="12345678" /></label><label>Currículum vitae (PDF)<input name="cv" type="file" accept="application/pdf,.pdf" required /><small>Solo PDF, máximo 5 MB.</small></label></div><button class="button" type="submit">Enviar postulación</button><button id="cancel-job-application" class="text-button" type="button">Cancelar</button><p id="job-application-message" class="message"></p></form>
+      </section>
     </main>
     <footer class="site-footer">
       <div class="footer-main">

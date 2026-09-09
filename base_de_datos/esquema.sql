@@ -213,9 +213,22 @@ CREATE TABLE IF NOT EXISTS historial_estados_pedido (
   FOREIGN KEY (id_pedido) REFERENCES pedidos(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS postulaciones_laborales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombres TEXT NOT NULL,
+  apellidos TEXT NOT NULL,
+  dni TEXT NOT NULL UNIQUE,
+  archivo_cv TEXT NOT NULL,
+  nombre_original_cv TEXT NOT NULL,
+  tamano_cv INTEGER NOT NULL,
+  fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fecha_actualizacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS indice_productos_categoria ON productos(id_categoria);
 CREATE INDEX IF NOT EXISTS indice_cotizaciones_cliente ON cotizaciones(id_cliente);
 CREATE INDEX IF NOT EXISTS indice_usuarios_cliente ON usuarios(id_cliente);
 CREATE INDEX IF NOT EXISTS indice_usuarios_ventas_correo ON usuarios_ventas(correo);
 CREATE INDEX IF NOT EXISTS indice_pedidos_cliente ON pedidos(id_cliente);
 CREATE INDEX IF NOT EXISTS indice_historial_pedido ON historial_estados_pedido(id_pedido);
+CREATE INDEX IF NOT EXISTS indice_postulaciones_dni ON postulaciones_laborales(dni);

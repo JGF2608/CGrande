@@ -63,6 +63,16 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .button { background:var(--leaf); color:var(--forest-deep); border-radius:999px; padding:12px 21px; transition:transform .22s ease,background .22s ease; }
 .button:hover { background:var(--blue-soft); transform:translateY(-2px); }
 .company,.tracking,.timeline-section { background:var(--cream); }
+.careers { background:var(--cream); }
+.careers h2 { color:var(--golden); max-width:780px; }
+.careers > div,.career-form { max-width:760px; }
+.career-form { margin-top:28px; padding:24px; border:1px solid #cbdde5; border-radius:14px; background:#fff; }
+.career-form .text-button { color:var(--blue-strong); margin-left:8px; }
+.applications-table { overflow-x:auto; }
+.applications-table table { width:100%; min-width:760px; border-collapse:collapse; }
+.applications-table th,.applications-table td { padding:12px 10px; border-bottom:1px solid #d9e2ec; text-align:left; vertical-align:middle; }
+.applications-table th { color:var(--forest); font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
+.applications-table .button { padding:8px 12px; font-size:.82rem; }
 .company { position:relative; overflow:hidden; }
 .company::after { content:""; position:absolute; width:360px; height:360px; border-radius:50%; border:55px solid #d5e6ed; right:-120px; top:-100px; opacity:.6; }
 .company > * { position:relative; z-index:1; }
