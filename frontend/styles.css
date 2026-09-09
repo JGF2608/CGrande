@@ -63,14 +63,15 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .button { background:var(--leaf); color:var(--forest-deep); border-radius:999px; padding:12px 21px; transition:transform .22s ease,background .22s ease; }
 .button:hover { background:var(--blue-soft); transform:translateY(-2px); }
 .company,.tracking,.timeline-section { background:var(--cream); }
-.careers { position:relative; display:flex; min-height:680px; align-items:center; overflow:hidden; isolation:isolate; background:#fff; }
+.careers { position:relative; display:flex; height:680px; min-height:680px; align-items:center; overflow:hidden; isolation:isolate; background:#fff; }
 .careers::before { content:""; position:absolute; z-index:0; width:440px; height:440px; left:-315px; top:50%; transform:translateY(-50%); border:52px solid #e6f2f6; border-radius:50%; }
 .careers > * { position:relative; z-index:1; }
 .careers h2 { color:var(--golden); max-width:780px; }
-.careers-layout { display:grid; width:100%; max-width:760px; }
-.careers-layout.is-form-open { max-width:1180px; grid-template-columns:minmax(280px,.8fr) minmax(420px,1.2fr); gap:54px; align-items:center; }
-.career-form { margin-top:28px; padding:24px; border:1px solid #cbdde5; border-radius:22px; background:#fff; opacity:0; transform:translateX(58px); transition:opacity .38s ease,transform .38s ease; }
-.careers-layout.is-form-open .career-form { opacity:1; transform:translateX(0); }
+.careers-layout { display:block; width:100%; max-width:760px; }
+.careers-layout.is-form-open { max-width:1180px; }
+.careers-layout.is-form-open #career-invitation { max-width:400px; }
+.career-form { position:absolute; z-index:2; top:50%; right:0; width:min(58%,680px); margin:0; padding:24px; border:1px solid #cbdde5; border-radius:22px; background:#fff; opacity:0; pointer-events:none; transform:translateY(-50%) translateX(58px); transition:opacity .38s ease,transform .38s ease; }
+.careers-layout.is-form-open .career-form { opacity:1; pointer-events:auto; transform:translateY(-50%) translateX(0); }
 .career-form input { border-radius:999px; padding:13px 17px; }
 .career-document-field { position:relative; display:flex; align-items:stretch; }
 .career-document-native { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
@@ -96,7 +97,7 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .applications-table th,.applications-table td { padding:12px 10px; border-bottom:1px solid #d9e2ec; text-align:left; vertical-align:middle; }
 .applications-table th { color:var(--forest); font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
 .applications-table .button { padding:8px 12px; font-size:.82rem; }
-@media (max-width:700px) { .careers { display:block; min-height:0; } .careers::before { width:310px; height:310px; left:-235px; border-width:38px; top:24%; } .careers-layout.is-form-open { grid-template-columns:1fr; gap:22px; } .career-form { margin-top:0; transform:translateX(32px); } .career-form-footer { align-items:flex-start; flex-direction:column; } .career-form-actions { margin-left:0; } }
+@media (max-width:700px) { .careers { display:block; height:auto; min-height:0; } .careers::before { width:310px; height:310px; left:-235px; border-width:38px; top:24%; } .careers-layout.is-form-open { max-width:none; } .careers-layout.is-form-open #career-invitation { max-width:none; } .career-form { position:static; width:auto; margin-top:22px; transform:translateX(32px); } .careers-layout.is-form-open .career-form { transform:translateX(0); } .career-form-footer { align-items:flex-start; flex-direction:column; } .career-form-actions { margin-left:0; } }
 .company { position:relative; overflow:hidden; }
 .company::after { content:""; position:absolute; width:360px; height:360px; border-radius:50%; border:55px solid #d5e6ed; right:-120px; top:-100px; opacity:.6; }
 .company > * { position:relative; z-index:1; }
