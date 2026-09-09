@@ -72,16 +72,23 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .career-form { margin-top:28px; padding:24px; border:1px solid #cbdde5; border-radius:22px; background:#fff; opacity:0; transform:translateX(58px); transition:opacity .38s ease,transform .38s ease; }
 .careers-layout.is-form-open .career-form { opacity:1; transform:translateX(0); }
 .career-form input { border-radius:999px; padding:13px 17px; }
-.career-document-field { display:flex; align-items:stretch; }
-.career-document-field select { width:78px; border:1px solid #bcccdc; border-right:0; border-radius:999px 0 0 999px; padding:13px 10px 13px 16px; font:inherit; font-weight:700; background:#e6f2f6; color:var(--forest); }
+.career-document-field { position:relative; display:flex; align-items:stretch; }
+.career-document-native { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+.career-document-toggle { display:flex; width:82px; align-items:center; justify-content:space-between; gap:5px; border:1px solid #0a5c82; border-right:0; border-radius:999px 0 0 999px; padding:13px 12px 13px 17px; background:#e6f2f6; color:var(--forest); font:inherit; font-weight:800; cursor:pointer; }
+.career-document-toggle:hover { background:#d5e8f0; }
 .career-document-field input { min-width:0; flex:1; border-radius:0 999px 999px 0; }
+.career-document-options { position:absolute; z-index:3; top:calc(100% + 8px); left:0; display:grid; width:230px; padding:6px; border:1px solid #cbdde5; border-radius:14px; background:#fff; box-shadow:0 12px 28px #04345326; }
+.career-document-options button { display:grid; gap:1px; padding:10px 12px; border:0; border-radius:9px; background:transparent; color:var(--forest); text-align:left; cursor:pointer; }
+.career-document-options button:hover,.career-document-options button.active { background:#e6f2f6; }
+.career-document-options small { color:#547488; font-size:.75rem; font-weight:600; }
 .career-cv-field { display:grid; gap:8px; font-size:.9rem; font-weight:bold; }
 .career-file-input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
-.career-file-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.career-form-footer { display:flex; align-items:center; justify-content:space-between; gap:18px; }
+.career-file-actions { display:flex; min-width:0; align-items:center; flex-wrap:wrap; gap:10px; }
 .career-file-actions .button,.career-form-actions .button { margin:0; }
 .career-file-actions .button { display:inline-flex; align-items:center; cursor:pointer; }
 .career-file-actions span { color:#476a7a; font-size:.84rem; font-weight:400; overflow-wrap:anywhere; }
-.career-form-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.career-form-actions { display:flex; flex-wrap:nowrap; gap:10px; align-items:center; margin-left:auto; }
 .career-secondary-button { background:#e6f2f6; color:var(--forest); }
 .career-secondary-button:hover { background:#cfe4ed; }
 .applications-table { overflow-x:auto; }
@@ -89,7 +96,7 @@ body > header nav a:not(.session-access):hover::after { width:100%; }
 .applications-table th,.applications-table td { padding:12px 10px; border-bottom:1px solid #d9e2ec; text-align:left; vertical-align:middle; }
 .applications-table th { color:var(--forest); font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
 .applications-table .button { padding:8px 12px; font-size:.82rem; }
-@media (max-width:700px) { .careers::before { width:310px; height:310px; left:-235px; border-width:38px; top:24%; } .careers-layout.is-form-open { grid-template-columns:1fr; gap:22px; } .career-form { margin-top:0; transform:translateX(32px); } }
+@media (max-width:700px) { .careers::before { width:310px; height:310px; left:-235px; border-width:38px; top:24%; } .careers-layout.is-form-open { grid-template-columns:1fr; gap:22px; } .career-form { margin-top:0; transform:translateX(32px); } .career-form-footer { align-items:flex-start; flex-direction:column; } .career-form-actions { margin-left:0; } }
 .company { position:relative; overflow:hidden; }
 .company::after { content:""; position:absolute; width:360px; height:360px; border-radius:50%; border:55px solid #d5e6ed; right:-120px; top:-100px; opacity:.6; }
 .company > * { position:relative; z-index:1; }
