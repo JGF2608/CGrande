@@ -22,6 +22,7 @@
 :root { --forest:#043453; --forest-deep:#02263d; --leaf:#247a9b; --blue-strong:#0a5c82; --blue-soft:#6fafc4; --golden:#d5aa2c; --gold-soft:#e8ca73; --cream:#f4f1e9; --ink:#123247; --mist:#e6f2f6; }
 body { background:#fff; color:var(--ink); font-family:"Segoe UI",Arial,sans-serif; }
 body > header { padding:0 6%; background:#043453; box-shadow:none; }
+body > header:not(.public-header) { padding:18px 6%; }
 body > header .logo { color:#fff; font-size:1.05rem; letter-spacing:.08em; }
 .public-header .logo,.footer-logo { display:inline-flex; align-items:center; width:max-content; padding:3px 6px; border-radius:4px; background:#fff; }
 .company-logo-image { display:block; width:auto; height:54px; object-fit:contain; }
