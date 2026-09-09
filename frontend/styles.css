@@ -38,6 +38,7 @@ body > header nav a, body > header .session-access { color:#edf6fa; font-weight:
 .header-store-finder { display:inline-flex; align-items:center; gap:7px; }
 .header-store-finder span { color:var(--blue-soft); font-size:1.15rem; line-height:1; }
 .public-header nav a { font-size:.78rem; text-transform:uppercase; letter-spacing:.045em; }
+.mobile-store-finder { display:none; }
 .header-social { margin-left:auto; align-items:center; }
 .header-social .social-button { width:30px; height:30px; border-color:transparent; background:transparent; color:var(--blue-soft); }
 .header-social .social-button svg { width:19px; height:19px; }
@@ -199,6 +200,7 @@ footer { background:var(--forest-deep); }
   .public-header nav { display:none; position:absolute; top:100%; left:0; right:0; padding:12px 6% 18px; background:var(--forest-deep); border-top:1px solid #ffffff1a; box-shadow:0 14px 25px #02263d44; }
   .public-header nav.is-open { display:grid; grid-template-columns:1fr; gap:0; }
   .public-header nav a,.public-header nav .session-access { padding:12px 4px; color:#fff; }
+  .public-header .mobile-store-finder { display:inline-flex; align-items:center; color:var(--golden); font-weight:800; }
   .public-header nav a:not(.session-access)::after { display:none; }
   .public-header .session-menu { padding-top:6px; }
   .public-header .session-access.session-icon { display:inline-grid; padding:0; }

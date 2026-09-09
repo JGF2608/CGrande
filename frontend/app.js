@@ -62,6 +62,11 @@ document.querySelector('#whatsapp-general').addEventListener('click', () => { tr
 
 const mobileMenuToggle = document.querySelector('#mobile-menu-toggle');
 const mainNavigation = document.querySelector('#main-navigation');
+const mobileStoreFinder = document.createElement('a');
+mobileStoreFinder.className = 'mobile-store-finder';
+mobileStoreFinder.href = '#contacto';
+mobileStoreFinder.textContent = 'Encuentra tu tienda ↗';
+mainNavigation.insertBefore(mobileStoreFinder, document.querySelector('#session-menu'));
 mobileMenuToggle.addEventListener('click', () => {
   const isOpen = mainNavigation.classList.toggle('is-open');
   mobileMenuToggle.classList.toggle('is-open', isOpen);
