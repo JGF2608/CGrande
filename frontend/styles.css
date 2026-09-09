@@ -42,6 +42,11 @@ body > header nav a, body > header .session-access { color:#edf6fa; font-weight:
 .header-social .social-button { width:30px; height:30px; border-color:transparent; background:transparent; color:var(--blue-soft); }
 .header-social .social-button svg { width:19px; height:19px; }
 .header-social .social-button:hover { background:#ffffff12; color:var(--gold-soft); transform:translateY(-2px); }
+@media (min-width:701px) {
+  .public-header .header-bottom { position:relative; }
+  .public-header .session-menu { position:absolute; top:0; right:0; height:100%; }
+  .public-header .header-social { margin-right:132px; }
+}
 .promotional-popup { position:fixed; z-index:50; inset:0; display:grid; place-items:center; padding:32px; background:#011b2bd9; }
 .promotional-popup-card { position:relative; display:grid; width:min(88vw,1180px); max-height:86vh; place-items:center; border-radius:18px; background:#fff; box-shadow:0 24px 64px #011b2b8c; overflow:hidden; }
 .promotional-popup-card img { display:block; width:100%; max-height:86vh; object-fit:contain; }
