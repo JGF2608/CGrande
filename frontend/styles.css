@@ -39,6 +39,12 @@ body > header nav a, body > header .session-access { color:#edf6fa; font-weight:
 .header-social .social-button { width:30px; height:30px; border-color:transparent; background:transparent; color:var(--blue-soft); }
 .header-social .social-button svg { width:19px; height:19px; }
 .header-social .social-button:hover { background:#ffffff12; color:var(--gold-soft); transform:translateY(-2px); }
+.promotional-popup { position:fixed; z-index:50; inset:0; display:grid; place-items:center; padding:32px; background:#011b2bd9; }
+.promotional-popup-card { position:relative; display:grid; width:min(88vw,1180px); max-height:86vh; place-items:center; border-radius:18px; background:#fff; box-shadow:0 24px 64px #011b2b8c; overflow:hidden; }
+.promotional-popup-card img { display:block; width:100%; max-height:86vh; object-fit:contain; }
+.promotional-popup-close { position:absolute; z-index:1; top:13px; right:13px; display:grid; width:42px; height:42px; place-items:center; border:0; border-radius:50%; background:#043453; color:#fff; font-size:2rem; line-height:1; cursor:pointer; box-shadow:0 4px 12px #011b2b55; }
+.promotional-popup-close:hover { background:#d5aa2c; color:#043453; }
+body.popup-open { overflow:hidden; }
 body > header nav a:not(.session-access) { position:relative; }
 body > header nav a:not(.session-access)::after { content:""; position:absolute; left:0; bottom:-7px; height:2px; width:0; background:var(--leaf); transition:width .25s ease; }
 body > header nav a:not(.session-access):hover::after { width:100%; }
@@ -174,6 +180,8 @@ footer { background:var(--forest-deep); }
   .public-header .header-top { min-height:68px; border-bottom:0; }
   .public-header .header-bottom { min-height:0; }
   .public-header .header-store-finder,.public-header .header-social { display:none; }
+  .promotional-popup { padding:18px; }
+  .promotional-popup-card,.promotional-popup-card img { width:100%; max-height:78vh; }
   .mobile-menu-toggle { display:grid; width:42px; height:42px; place-content:center; gap:5px; background:var(--leaf); border:0; border-radius:50%; cursor:pointer; }
   .public-header .mobile-menu-toggle { position:absolute; top:13px; right:6%; }
   .mobile-menu-toggle span { display:block; width:18px; height:2px; background:var(--forest-deep); transition:transform .2s ease,opacity .2s ease; }
