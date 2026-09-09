@@ -32,6 +32,8 @@ body > header .logo { color:#fff; font-size:1.05rem; letter-spacing:.08em; }
 .public-header .header-bottom { min-height:58px; gap:28px; }
 body > header nav { display:flex; align-items:center; gap:26px; }
 body > header nav a, body > header .session-access { color:#edf6fa; font-weight:600; }
+.public-header .session-menu { display:flex; align-self:stretch; align-items:center; }
+.public-header .session-access { display:inline-flex; align-items:center; line-height:1; white-space:nowrap; }
 .public-header .store-finder-link { color:var(--golden); font-weight:800; text-decoration:none; text-transform:uppercase; letter-spacing:.05em; font-size:.86rem; }
 .header-store-finder { display:inline-flex; align-items:center; gap:7px; }
 .header-store-finder span { color:var(--blue-soft); font-size:1.15rem; line-height:1; }
