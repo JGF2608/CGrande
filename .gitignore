@@ -1,5 +1,6 @@
 .env
 base_de_datos/*.db
+base_de_datos/uploads/
 
 # Dependencias instaladas localmente y archivos temporales.
 node_modules/
