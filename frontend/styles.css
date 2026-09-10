@@ -377,8 +377,8 @@ footer { background:var(--forest-deep); }
 .section-index a { padding:8px 7px; border-radius:6px; color:#476a7a; font-size:.86rem; font-weight:700; text-decoration:none; }
 .section-index a:hover { background:#eaf5f8; color:var(--forest); }
 .admin-section,.sales-main section,.account section { scroll-margin-top:28px; }
-@media (max-width:1400px) { .section-index { position:sticky; top:8px; width:auto; margin:14px 7% 0; } .section-index strong { display:inline-block; margin:0 12px 0 0; } .section-index nav { display:inline-flex; max-width:calc(100vw - 90px); gap:4px; overflow-x:auto; vertical-align:middle; white-space:nowrap; } }
-@media (max-width:700px) { .section-index { margin:10px 5% 0; padding:11px 12px; } .section-index nav { max-width:calc(100vw - 70px); } .section-index a { padding:6px; font-size:.8rem; } }
+@media (max-width:1400px) { .section-index { position:sticky; top:8px; display:flex; width:auto; margin:14px 7% 0; gap:12px; align-items:center; overflow:hidden; } .section-index strong { flex:none; margin:0; } .section-index nav { display:flex; min-width:0; flex:1 1 0; max-width:none; gap:4px; overflow-x:auto; white-space:nowrap; } }
+@media (max-width:700px) { .section-index { display:block; margin:10px 5% 0; padding:11px 12px; } .section-index strong { display:block; margin:0 0 6px; } .section-index nav { max-width:100%; } .section-index a { padding:6px; font-size:.8rem; } }
 
 /* Contención común: evita que controles, archivos e imágenes rompan tarjetas. */
 body { overflow-x:hidden; }
