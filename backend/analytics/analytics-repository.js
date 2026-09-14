@@ -1,7 +1,7 @@
-const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
+const { analyticsDatabasePath } = require('../../base_de_datos/rutas_datos');
 
-const database = new DatabaseSync(path.join(__dirname, '..', '..', 'base_de_datos', 'analitica.db'));
+const database = new DatabaseSync(analyticsDatabasePath);
 database.exec(`
   CREATE TABLE IF NOT EXISTS eventos_analitica (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

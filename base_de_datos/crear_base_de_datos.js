@@ -1,10 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
+const { sourceDirectory, databasePath } = require('./rutas_datos');
 
-const folder = __dirname;
-const databasePath = path.join(folder, 'mvp_catalogo.db');
-const schemaPath = path.join(folder, 'esquema.sql');
+const schemaPath = path.join(sourceDirectory, 'esquema.sql');
 const database = new DatabaseSync(databasePath);
 
 database.exec('PRAGMA foreign_keys = ON;');

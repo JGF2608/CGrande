@@ -33,23 +33,24 @@ La protección contra abuso ya está incorporada: máximo de 240 solicitudes por
 
 ## 3. Estructura recomendada en el servidor
 
-Usar una carpeta fuera de `C:\inetpub\wwwroot` para que la base de datos, CVs y `.env` nunca sean accesibles como archivos web:
+Usar una carpeta fuera de `C:\inetpub\wwwroot` para que la base de datos, CVs y `.env` nunca sean accesibles como archivos web. Cada versión de código vive separada de los datos:
 
 ```text
 C:\CostaGrande\
-├── app\                         Código de la aplicación
-│   ├── backend\
-│   ├── frontend\
-│   ├── base_de_datos\
-│   │   ├── mvp_catalogo.db       Base de datos SQLite
-│   │   └── uploads\             Imágenes y CVs adjuntos
-│   └── .env                      Secretos; no copiar a Git
-├── backups\                      Copias comprimidas y temporales
+├── current\                     Enlace a la versión de código activa
+├── releases\                    Versiones desplegadas: v1.0.0, v1.1.0, etc.
+├── data\
+│   ├── mvp_catalogo.db           Base de datos SQLite
+│   ├── analitica.db              Datos de analítica
+│   └── uploads\                 Imágenes y CVs adjuntos
+├── config\
+│   └── costa-grande.env          Secretos; no copiar a Git
+├── backups\                      Copias comprimidas de datos y configuración
 ├── logs\                         Salida de Node/Caddy
-└── scripts\                      Script de copia de seguridad
+└── scripts\                      Scripts de actualización y respaldo
 ```
 
-El usuario que ejecute el servicio debe tener lectura y escritura solamente en `C:\CostaGrande\app\base_de_datos\`, `uploads`, `logs` y `backups`.
+`APP_DATA_DIR` permite que la aplicación use `C:\CostaGrande\data` sin modificar el código en cada despliegue. El usuario que ejecute el servicio debe tener lectura y escritura solamente en `data`, `config`, `logs` y `backups`.
 
 ## 4. Instalación de componentes
 
@@ -65,30 +66,46 @@ El usuario que ejecute el servicio debe tener lectura y escritura solamente en `
 5. Crear las carpetas:
 
    ```powershell
-   New-Item -ItemType Directory -Force -Path C:\CostaGrande\app,C:\CostaGrande\backups,C:\CostaGrande\logs,C:\CostaGrande\scripts,C:\Caddy
+   New-Item -ItemType Directory -Force -Path C:\CostaGrande\releases,C:\CostaGrande\data,C:\CostaGrande\config,C:\CostaGrande\backups,C:\CostaGrande\logs,C:\CostaGrande\scripts,C:\Caddy
    ```
 
 ## 5. Copiar la aplicación y los datos iniciales
 
 1. Detener el servidor local antes de tomar la copia final, para no copiar SQLite durante una escritura.
-2. Copiar todo el contenido del proyecto a `C:\CostaGrande\app`, excluyendo `.git`, `node_modules` y el `.env` de desarrollo.
-3. Copiar explícitamente los datos que deben conservarse:
+2. Crear un paquete de versión desde desarrollo. Por ejemplo:
+
+   ```powershell
+   .\scripts\Crear-Paquete-Version.ps1 -Version 1.0.0
+   ```
+
+   El paquete excluye `.env`, bases `.db`, `uploads`, `.git` y `node_modules`.
+3. Copiar el paquete y los dos scripts de `scripts\` al servidor. Crear primero `C:\CostaGrande\config\costa-grande.env` según la sección 6.
+4. Antes de la primera actualización, copiar explícitamente los datos que deben conservarse en `C:\CostaGrande\data`:
 
    ```text
    base_de_datos\mvp_catalogo.db
+   base_de_datos\analitica.db
    base_de_datos\uploads\
    ```
 
-4. Confirmar que `C:\CostaGrande\app\base_de_datos\uploads\` contiene las imágenes y CVs existentes.
-5. No ejecutar `crear_base_de_datos.js` sobre una base con datos reales, salvo que se haya tomado una copia y se haya validado el cambio.
+5. Confirmar que `C:\CostaGrande\data\uploads\` contiene las imágenes y CVs existentes.
+6. Ejecutar la primera actualización:
+
+   ```powershell
+   C:\CostaGrande\scripts\Actualizar-CostaGrande.ps1 -PackagePath C:\Ruta\CostaGrande-v1.0.0.zip
+   ```
+
+7. No ejecutar `crear_base_de_datos.js` sobre una base con datos reales, salvo que se haya tomado una copia y se haya validado el cambio.
 
 ## 6. Crear el archivo de producción `.env`
 
-Crear `C:\CostaGrande\app\.env` manualmente y dar acceso solo al administrador y al usuario del servicio. Nunca copiar este archivo al repositorio.
+Crear `C:\CostaGrande\config\costa-grande.env` manualmente y dar acceso solo al administrador y al usuario del servicio. Nunca copiar este archivo al repositorio.
 
 ```env
 PORT=3000
 MAX_CONNECTIONS=500
+APP_DATA_DIR=C:\CostaGrande\data
+APP_ENV_FILE=C:\CostaGrande\config\costa-grande.env
 EMAIL_NOTIFICATIONS_ENABLED=true
 RESEND_API_KEY=REEMPLAZAR_CON_LA_CLAVE_REAL
 RESEND_TEST_RECIPIENT=correo-pruebas@empresa.pe
@@ -109,8 +126,8 @@ ANALYTICS_ENABLED=true
 Desde PowerShell, con la aplicación copiada:
 
 ```powershell
-Set-Location C:\CostaGrande\app
-node --env-file=.env backend\server.js
+Set-Location C:\CostaGrande\current
+node --env-file=C:\CostaGrande\config\costa-grande.env backend\server.js
 ```
 
 En el propio servidor, abrir `http://localhost:3000`. Verificar página pública, inicio de sesión, administración, carga de imagen, cotización, CV y descarga de CV. Detener con `Ctrl+C` antes de crear los servicios.
@@ -134,8 +151,8 @@ Crear primero el servicio de Node con NSSM:
 
 ```powershell
 C:\nssm\win64\nssm.exe install CostaGrandeApp "C:\Program Files\nodejs\node.exe"
-C:\nssm\win64\nssm.exe set CostaGrandeApp AppDirectory "C:\CostaGrande\app"
-C:\nssm\win64\nssm.exe set CostaGrandeApp AppParameters "--env-file=.env backend\server.js"
+C:\nssm\win64\nssm.exe set CostaGrandeApp AppDirectory "C:\CostaGrande\current"
+C:\nssm\win64\nssm.exe set CostaGrandeApp AppParameters "--env-file=C:\CostaGrande\config\costa-grande.env backend\server.js"
 C:\nssm\win64\nssm.exe set CostaGrandeApp AppStdout "C:\CostaGrande\logs\app-out.log"
 C:\nssm\win64\nssm.exe set CostaGrandeApp AppStderr "C:\CostaGrande\logs\app-error.log"
 C:\nssm\win64\nssm.exe set CostaGrandeApp Start SERVICE_AUTO_START
@@ -170,14 +187,14 @@ Get-Service CostaGrandeApp,CostaGrandeProxy
 
 ## 11. Backup diario
 
-El backup debe contener, como mínimo, `mvp_catalogo.db`, `uploads` y una copia cifrada/segura de `.env`. Guardar una copia fuera del mismo servidor (OneDrive empresarial, NAS, S3 u otro repositorio autorizado).
+El backup debe contener, como mínimo, `mvp_catalogo.db`, `analitica.db`, `uploads` y una copia cifrada/segura de `costa-grande.env`. Guardar una copia fuera del mismo servidor (OneDrive empresarial, NAS, S3 u otro repositorio autorizado).
 
 Antes de copiar el archivo SQLite, detener brevemente el servicio para mantener una copia consistente:
 
 ```powershell
 Stop-Service CostaGrandeApp
 $fecha = Get-Date -Format 'yyyy-MM-dd_HH-mm'
-Compress-Archive -Path C:\CostaGrande\app\base_de_datos\mvp_catalogo.db,C:\CostaGrande\app\base_de_datos\uploads -DestinationPath "C:\CostaGrande\backups\costa-grande_$fecha.zip"
+Compress-Archive -Path C:\CostaGrande\data\mvp_catalogo.db,C:\CostaGrande\data\analitica.db,C:\CostaGrande\data\uploads,C:\CostaGrande\config\costa-grande.env -DestinationPath "C:\CostaGrande\backups\costa-grande_$fecha.zip"
 Start-Service CostaGrandeApp
 ```
 

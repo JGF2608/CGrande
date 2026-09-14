@@ -9,8 +9,9 @@ const templateDefinitions = {
   order_in_transit: { title: 'Pedido en camino', variables: ['{{order_code}}', '{{customer_name}}', '{{estimated_delivery_date}}', '{{company_name}}', '{{company_phone}}', '{{company_signature}}'] },
 };
 
+function environmentFilePath() { return path.resolve(process.env.APP_ENV_FILE || path.join(__dirname, '..', '.env')); }
 function loadLocalEnvironment() {
-  const envPath = path.join(__dirname, '..', '.env');
+  const envPath = environmentFilePath();
   if (!fs.existsSync(envPath)) return;
   fs.readFileSync(envPath, 'utf8').split(/\r?\n/).forEach((line) => {
     const item = line.trim(); if (!item || item.startsWith('#')) return;
@@ -32,9 +33,9 @@ function saveEmailConfiguration({ apiKey, recipient, salesRecipient, from }) {
   if (from && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) throw new Error('Ingresa un remitente válido.');
   if (!apiKey && !process.env.RESEND_API_KEY) throw new Error('Ingresa la API Key de Resend.');
   if (!recipient && !process.env.RESEND_TEST_RECIPIENT) throw new Error('Ingresa el correo personal que recibirá la prueba.');
-  const values = { EMAIL_NOTIFICATIONS_ENABLED: process.env.EMAIL_NOTIFICATIONS_ENABLED || 'false', RESEND_API_KEY: apiKey || process.env.RESEND_API_KEY, RESEND_TEST_RECIPIENT: recipient || process.env.RESEND_TEST_RECIPIENT, RESEND_SALES_RECIPIENT: salesRecipient || process.env.RESEND_SALES_RECIPIENT || recipient || process.env.RESEND_TEST_RECIPIENT, RESEND_FROM: from || process.env.RESEND_FROM || 'onboarding@resend.dev', GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || '', ANALYTICS_ENABLED: process.env.ANALYTICS_ENABLED || 'false' };
-  const content = `# Archivo privado de configuración. No lo compartas ni lo subas a Internet.\nEMAIL_NOTIFICATIONS_ENABLED=${values.EMAIL_NOTIFICATIONS_ENABLED}\nRESEND_API_KEY=${values.RESEND_API_KEY}\nRESEND_TEST_RECIPIENT=${values.RESEND_TEST_RECIPIENT}\nRESEND_SALES_RECIPIENT=${values.RESEND_SALES_RECIPIENT}\nRESEND_FROM=${values.RESEND_FROM}\n\n# Clave de Google Maps. Restringirla al dominio de la web en Google Cloud.\nGOOGLE_MAPS_API_KEY=${values.GOOGLE_MAPS_API_KEY}\nANALYTICS_ENABLED=${values.ANALYTICS_ENABLED}\n`;
-  fs.writeFileSync(path.join(__dirname, '..', '.env'), content, { encoding: 'utf8', mode: 0o600 }); Object.assign(process.env, values); return getEmailConfigurationStatus();
+  const values = { PORT: process.env.PORT || '3000', MAX_CONNECTIONS: process.env.MAX_CONNECTIONS || '500', APP_DATA_DIR: process.env.APP_DATA_DIR || '', APP_ENV_FILE: process.env.APP_ENV_FILE || '', EMAIL_NOTIFICATIONS_ENABLED: process.env.EMAIL_NOTIFICATIONS_ENABLED || 'false', RESEND_API_KEY: apiKey || process.env.RESEND_API_KEY, RESEND_TEST_RECIPIENT: recipient || process.env.RESEND_TEST_RECIPIENT, RESEND_SALES_RECIPIENT: salesRecipient || process.env.RESEND_SALES_RECIPIENT || recipient || process.env.RESEND_TEST_RECIPIENT, RESEND_FROM: from || process.env.RESEND_FROM || 'onboarding@resend.dev', GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || '', ANALYTICS_ENABLED: process.env.ANALYTICS_ENABLED || 'false' };
+  const content = `# Archivo privado de configuración. No lo compartas ni lo subas a Internet.\nPORT=${values.PORT}\nMAX_CONNECTIONS=${values.MAX_CONNECTIONS}\nAPP_DATA_DIR=${values.APP_DATA_DIR}\nAPP_ENV_FILE=${values.APP_ENV_FILE}\n\nEMAIL_NOTIFICATIONS_ENABLED=${values.EMAIL_NOTIFICATIONS_ENABLED}\nRESEND_API_KEY=${values.RESEND_API_KEY}\nRESEND_TEST_RECIPIENT=${values.RESEND_TEST_RECIPIENT}\nRESEND_SALES_RECIPIENT=${values.RESEND_SALES_RECIPIENT}\nRESEND_FROM=${values.RESEND_FROM}\n\n# Clave de Google Maps. Restringirla al dominio de la web en Google Cloud.\nGOOGLE_MAPS_API_KEY=${values.GOOGLE_MAPS_API_KEY}\nANALYTICS_ENABLED=${values.ANALYTICS_ENABLED}\n`;
+  const envPath = environmentFilePath(); fs.mkdirSync(path.dirname(envPath), { recursive: true }); fs.writeFileSync(envPath, content, { encoding: 'utf8', mode: 0o600 }); Object.assign(process.env, values); return getEmailConfigurationStatus();
 }
 
 function getEmailTemplates() { return { templates: database.listEmailTemplates().map((template) => ({ ...template, title: templateDefinitions[template.type]?.title || template.type, variables: templateDefinitions[template.type]?.variables || [] })), signature: database.getCompanySettings().emailSignature || '' }; }

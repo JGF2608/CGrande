@@ -2,12 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
+const { sourceDirectory, dataDirectory, databasePath, uploadsDirectory } = require('./rutas_datos');
 
-const databasePath = path.join(__dirname, 'mvp_catalogo.db');
 const database = new DatabaseSync(databasePath);
-const mediaRoot = path.join(__dirname, 'uploads');
+const mediaRoot = uploadsDirectory;
 database.exec('PRAGMA foreign_keys = ON;');
-database.exec(fs.readFileSync(path.join(__dirname, 'esquema.sql'), 'utf8'));
+database.exec(fs.readFileSync(path.join(sourceDirectory, 'esquema.sql'), 'utf8'));
 // Mantiene compatible la base de datos que ya se creó antes de estos campos.
 ['departamento', 'provincia', 'distrito'].forEach((column) => {
   try { database.exec(`ALTER TABLE clientes ADD COLUMN ${column} TEXT`); } catch { /* La columna ya existe. */ }
@@ -36,7 +36,7 @@ function mediaFile(value) { const reference = String(value || '').replace(/^\//,
 function saveMediaImage(value, group) { const dataImage = parseDataImage(value); if (!dataImage) return isMediaReference(value) ? mediaReference(value) : value || null; const extension = mediaTypes[dataImage.mime]; const directory = path.join(mediaRoot, group); fs.mkdirSync(directory, { recursive: true }); const reference = `media/${group}/${crypto.randomUUID()}.${extension}`; fs.writeFileSync(path.join(mediaRoot, reference.slice('media/'.length)), dataImage.content); return reference; }
 function deleteMediaImage(value) { const file = mediaFile(value); if (file) fs.rmSync(file.path, { force: true }); }
 function replaceMediaImage(currentValue, nextValue, group) { const stored = saveMediaImage(nextValue, group); if (stored !== currentValue) deleteMediaImage(currentValue); return stored; }
-function migrateLegacyImages() { const targets = [['banners_publicitarios', 'imagen_url', 'banners'], ['socios_comerciales', 'imagen_url', 'partners'], ['categorias_producto', 'imagen_url', 'categories'], ['productos', 'imagen_url', 'products'], ['hitos_historia', 'imagen_url', 'timeline'], ['configuracion_empresa', 'sobre_nosotros_imagen', 'about'], ['configuracion_empresa', 'imagen_popup_publicitario', 'popups']]; const pending = targets.map(([table, column, group]) => ({ table, column, group, rows: database.prepare(`SELECT id, ${column} AS image FROM ${table} WHERE ${column} LIKE 'data:image/%'`).all() })).filter((target) => target.rows.length); if (!pending.length) return; const backupPath = path.join(__dirname, 'mvp_catalogo.pre-media-migration.db'); if (!fs.existsSync(backupPath)) fs.copyFileSync(databasePath, backupPath); pending.forEach(({ table, column, group, rows }) => { const update = database.prepare(`UPDATE ${table} SET ${column} = ? WHERE id = ?`); rows.forEach((row) => update.run(saveMediaImage(row.image, group), row.id)); }); database.exec('VACUUM'); }
+function migrateLegacyImages() { const targets = [['banners_publicitarios', 'imagen_url', 'banners'], ['socios_comerciales', 'imagen_url', 'partners'], ['categorias_producto', 'imagen_url', 'categories'], ['productos', 'imagen_url', 'products'], ['hitos_historia', 'imagen_url', 'timeline'], ['configuracion_empresa', 'sobre_nosotros_imagen', 'about'], ['configuracion_empresa', 'imagen_popup_publicitario', 'popups']]; const pending = targets.map(([table, column, group]) => ({ table, column, group, rows: database.prepare(`SELECT id, ${column} AS image FROM ${table} WHERE ${column} LIKE 'data:image/%'`).all() })).filter((target) => target.rows.length); if (!pending.length) return; const backupPath = path.join(dataDirectory, 'mvp_catalogo.pre-media-migration.db'); if (!fs.existsSync(backupPath)) fs.copyFileSync(databasePath, backupPath); pending.forEach(({ table, column, group, rows }) => { const update = database.prepare(`UPDATE ${table} SET ${column} = ? WHERE id = ?`); rows.forEach((row) => update.run(saveMediaImage(row.image, group), row.id)); }); database.exec('VACUUM'); }
 
 function nextCode(prefix, table) {
   const rows = database.prepare(`SELECT codigo FROM ${table}`).all();
