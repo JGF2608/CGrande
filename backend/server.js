@@ -12,13 +12,20 @@ const frontendPath = path.join(__dirname, '..', 'frontend');
 const allowedStatuses = ['Pedido en curso', 'Pedido en camino', 'Pedido entregado', 'Cancelado'];
 const sessions = new Map();
 const sessionDurationMs = 8 * 60 * 60 * 1000;
+const maximumJsonBodyBytes = 3 * 1024 * 1024;
+const maximumRateLimitEntries = 10000;
+const requestRateLimits = new Map();
+const loginAttemptLimits = new Map();
+const loginFailureLimitsByIp = new Map();
+const loginFailureLimitsByAccount = new Map();
 
-function sendJson(response, status, data) { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); response.end(JSON.stringify(data)); }
+function sendJson(response, status, data, headers = {}) { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...headers }); response.end(JSON.stringify(data)); }
 function serveFile(response, fileName, contentType) { fs.readFile(path.join(frontendPath, fileName), (error, content) => { if (error) { response.writeHead(404); response.end('No encontrado'); return; } response.writeHead(200, { 'Content-Type': contentType }); response.end(content); }); }
 function serveDataImage(response, image) { const match = String(image || '').match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/); if (!match) { response.writeHead(404); response.end('Imagen no encontrada'); return; } response.writeHead(200, { 'Content-Type': match[1], 'Cache-Control': 'public, max-age=86400' }); response.end(Buffer.from(match[2], 'base64')); }
 function serveImage(response, image) { if (String(image || '').startsWith('data:image/')) return serveDataImage(response, image); const file = database.getMediaFile(image); if (!file) { response.writeHead(404); response.end('Imagen no encontrada'); return; } response.writeHead(200, { 'Content-Type': file.mime, 'Cache-Control': 'public, max-age=31536000, immutable' }); fs.createReadStream(file.path).on('error', () => { if (!response.headersSent) response.writeHead(404); response.end('Imagen no encontrada'); }).pipe(response); }
-function readBody(request) { return new Promise((resolve, reject) => { let body = ''; request.on('data', (chunk) => { body += chunk; }); request.on('end', () => { try { resolve(JSON.parse(body || '{}')); } catch { reject(new Error('Datos inválidos')); } }); }); }
-function readRawBody(request, maximumBytes) { return new Promise((resolve, reject) => { const chunks = []; let size = 0; request.on('data', (chunk) => { size += chunk.length; if (size > maximumBytes) { reject(new Error('El archivo PDF supera el máximo permitido de 5 MB.')); request.destroy(); return; } chunks.push(chunk); }); request.on('end', () => resolve(Buffer.concat(chunks))); request.on('error', reject); }); }
+function requestError(message, statusCode = 400) { const error = new Error(message); error.statusCode = statusCode; return error; }
+function readBody(request) { return new Promise((resolve, reject) => { let body = '', size = 0, finished = false; request.on('data', (chunk) => { if (finished) return; size += chunk.length; if (size > maximumJsonBodyBytes) { finished = true; request.resume(); reject(requestError('La solicitud supera el tamaño máximo permitido.', 413)); return; } body += chunk; }); request.on('end', () => { if (finished) return; try { resolve(JSON.parse(body || '{}')); } catch { reject(requestError('Datos inválidos')); } }); request.on('error', reject); }); }
+function readRawBody(request, maximumBytes) { return new Promise((resolve, reject) => { const chunks = []; let size = 0, finished = false; request.on('data', (chunk) => { if (finished) return; size += chunk.length; if (size > maximumBytes) { finished = true; request.resume(); reject(requestError('El archivo PDF supera el máximo permitido de 5 MB.', 413)); return; } chunks.push(chunk); }); request.on('end', () => { if (!finished) resolve(Buffer.concat(chunks)); }); request.on('error', reject); }); }
 async function readJobApplication(request) { const type = String(request.headers['content-type'] || ''); const boundaryMatch = type.match(/boundary=(?:"([^"]+)"|([^;\s]+))/i); const boundary = boundaryMatch?.[1] || boundaryMatch?.[2]; if (!boundary) throw new Error('No pudimos leer el formulario.'); const raw = await readRawBody(request, 5 * 1024 * 1024 + 64 * 1024); const separator = Buffer.from(`--${boundary}`); const values = {}; let file = null; let offset = raw.indexOf(separator) + separator.length + 2; while (offset > separator.length + 1 && offset < raw.length) { const next = raw.indexOf(separator, offset); if (next < 0) break; const part = raw.subarray(offset, next - 2); const divider = part.indexOf(Buffer.from('\r\n\r\n')); if (divider >= 0) { const headers = part.subarray(0, divider).toString('utf8'); const content = part.subarray(divider + 4); const name = headers.match(/name="([^"]+)"/i)?.[1]; const filename = headers.match(/filename="([^"]*)"/i)?.[1]; if (name === 'cv') file = { name: filename || 'cv.pdf', type: headers.match(/Content-Type:\s*([^\r\n]+)/i)?.[1]?.trim().toLowerCase() || '', content }; else if (name) values[name] = content.toString('utf8').trim(); } offset = next + separator.length + 2; }
   return { ...values, cv: file };
 }
@@ -55,11 +62,33 @@ function getSession(request) { const token = (request.headers.cookie || '').spli
 function requireRole(request, response, role) { const session = getSession(request); if (!session || (role && session.role !== role)) { sendJson(response, 401, { message: 'Acceso no autorizado.' }); return null; } return session; }
 function requireRoles(request, response, roles) { const session = getSession(request); if (!session || !roles.includes(session.role)) { sendJson(response, 401, { message: 'Acceso no autorizado.' }); return null; } return session; }
 function revokeSalesUserSessions(userId) { for (const [token, record] of sessions) if (record.user.role === 'ventas' && record.user.id === userId) sessions.delete(token); }
+function isLoopbackAddress(address) { return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'; }
+function getClientIp(request) { const remoteAddress = request.socket.remoteAddress || 'unknown'; if (!isLoopbackAddress(remoteAddress)) return remoteAddress; return String(request.headers['x-forwarded-for'] || '').split(',')[0].trim() || remoteAddress; }
+function pruneRateLimitStore(store, now = Date.now()) { for (const [key, value] of store) if (value.resetAt <= now) store.delete(key); }
+function consumeRateLimit(store, key, limit, windowMs) { const now = Date.now(); let record = store.get(key); if (!record || record.resetAt <= now) { if (store.size >= maximumRateLimitEntries) pruneRateLimitStore(store, now); if (store.size >= maximumRateLimitEntries) return { allowed: false, retryAfterSeconds: Math.ceil(windowMs / 1000) }; record = { count: 0, resetAt: now + windowMs }; store.set(key, record); } if (record.count >= limit) return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((record.resetAt - now) / 1000)) }; record.count += 1; return { allowed: true, retryAfterSeconds: 0 }; }
+function getRateLimitBlock(store, key, limit) { const record = store.get(key); if (!record) return null; if (record.resetAt <= Date.now()) { store.delete(key); return null; } return record.count >= limit ? { retryAfterSeconds: Math.max(1, Math.ceil((record.resetAt - Date.now()) / 1000)) } : null; }
+function registerLoginFailure(store, key, windowMs) { const now = Date.now(); const record = store.get(key); if (!record || record.resetAt <= now) { store.set(key, { count: 1, resetAt: now + windowMs }); return; } record.count += 1; }
+function sendRateLimitResponse(response, retryAfterSeconds, message) { return sendJson(response, 429, { message }, { 'Retry-After': String(retryAfterSeconds) }); }
+setInterval(() => { pruneRateLimitStore(requestRateLimits); pruneRateLimitStore(loginAttemptLimits); pruneRateLimitStore(loginFailureLimitsByIp); pruneRateLimitStore(loginFailureLimitsByAccount); }, 5 * 60 * 1000).unref();
 
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   try {
-    if (request.method === 'POST' && url.pathname === '/api/auth/login') { const credentials = await readBody(request); const user = database.authenticate(credentials.email, credentials.password); if (!user) return sendJson(response, 401, { message: 'Correo o contraseña incorrectos.' }); const token = crypto.randomUUID(); sessions.set(token, { user, expiresAt: Date.now() + sessionDurationMs }); response.setHeader('Set-Cookie', `mvp_session=${token}; HttpOnly; SameSite=Lax; Max-Age=28800; Path=/`); return sendJson(response, 200, { user }); }
+    const clientIp = getClientIp(request);
+    const requestRateLimit = consumeRateLimit(requestRateLimits, clientIp, 240, 60 * 1000);
+    if (!requestRateLimit.allowed) return sendRateLimitResponse(response, requestRateLimit.retryAfterSeconds, 'Demasiadas solicitudes. Intenta nuevamente en un minuto.');
+    if (request.method === 'POST' && url.pathname === '/api/auth/login') {
+      const credentials = await readBody(request);
+      const accountKey = String(credentials.email || '').trim().toLowerCase() || 'sin-correo';
+      const loginAttemptLimit = consumeRateLimit(loginAttemptLimits, clientIp, 30, 15 * 60 * 1000);
+      const ipFailureBlock = getRateLimitBlock(loginFailureLimitsByIp, clientIp, 10);
+      const accountFailureBlock = getRateLimitBlock(loginFailureLimitsByAccount, accountKey, 5);
+      if (!loginAttemptLimit.allowed || ipFailureBlock || accountFailureBlock) return sendRateLimitResponse(response, loginAttemptLimit.retryAfterSeconds || ipFailureBlock?.retryAfterSeconds || accountFailureBlock?.retryAfterSeconds || 60, 'Demasiados intentos de inicio de sesión. Espera unos minutos antes de volver a intentarlo.');
+      const user = database.authenticate(credentials.email, credentials.password);
+      if (!user) { registerLoginFailure(loginFailureLimitsByIp, clientIp, 15 * 60 * 1000); registerLoginFailure(loginFailureLimitsByAccount, accountKey, 15 * 60 * 1000); return sendJson(response, 401, { message: 'Correo o contraseña incorrectos.' }); }
+      loginFailureLimitsByIp.delete(clientIp); loginFailureLimitsByAccount.delete(accountKey);
+      const token = crypto.randomUUID(); sessions.set(token, { user, expiresAt: Date.now() + sessionDurationMs }); response.setHeader('Set-Cookie', `mvp_session=${token}; HttpOnly; SameSite=Lax; Max-Age=28800; Path=/`); return sendJson(response, 200, { user });
+    }
     if (request.method === 'POST' && url.pathname === '/api/auth/logout') { const token = (request.headers.cookie || '').split(';').map((item) => item.trim()).find((item) => item.startsWith('mvp_session='))?.split('=')[1]; if (token) sessions.delete(token); response.setHeader('Set-Cookie', 'mvp_session=; Max-Age=0; Path=/'); return sendJson(response, 200, { message: 'Sesión cerrada.' }); }
     if (request.method === 'GET' && url.pathname === '/api/auth/me') { const session = getSession(request); return session ? sendJson(response, 200, { user: session }) : sendJson(response, 401, { message: 'Sin sesión.' }); }
     if (request.method === 'GET' && url.pathname === '/api/analytics/config') return sendJson(response, 200, { enabled: analytics.enabled() });
@@ -164,6 +193,10 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/assets/favicon-costa-grande.png') return serveFile(response, 'assets/favicon-costa-grande.png', 'image/png');
     if (request.method === 'GET' && url.pathname === '/assets/catalog-loading-groceries-v3.webp') return serveFile(response, 'assets/catalog-loading-groceries-v3.webp', 'image/webp');
     response.writeHead(404); response.end('No encontrado');
-  } catch (error) { sendJson(response, 400, { message: error.message || 'No pudimos procesar la solicitud.' }); }
+  } catch (error) { sendJson(response, error.statusCode || 400, { message: error.message || 'No pudimos procesar la solicitud.' }); }
 });
+server.headersTimeout = 15 * 1000;
+server.requestTimeout = 30 * 1000;
+server.keepAliveTimeout = 5 * 1000;
+server.maxConnections = Number(process.env.MAX_CONNECTIONS || 500);
 server.listen(port, () => console.log(`MVP listo en http://localhost:${port}`));

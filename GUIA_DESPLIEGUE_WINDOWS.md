@@ -25,9 +25,11 @@ Esta guía aplica a la versión actual de Costa Grande: una aplicación Node.js 
 1. Hacer que Node escuche solo en `127.0.0.1`; Caddy será el único componente expuesto a Internet.
 2. Marcar la cookie de sesión como `Secure` en producción, para que solo viaje por HTTPS.
 3. Eliminar/cambiar las credenciales iniciales de desarrollo (`admin@empresa.local` / `admin123`) y definir un administrador de producción seguro.
-4. Añadir cabeceras de seguridad y límite de intentos al inicio de sesión.
+4. Añadir cabeceras de seguridad adicionales.
 
 La aplicación actual puede funcionar en Windows sin estos cambios, pero esos cuatro puntos se deben completar antes de la salida pública. No se debe publicar la copia que conserve la cuenta y contraseña inicial de desarrollo.
+
+La protección contra abuso ya está incorporada: máximo de 240 solicitudes por minuto por IP, límite de 30 intentos de inicio de sesión por IP cada 15 minutos, bloqueo tras 10 fallos por IP o 5 fallos por cuenta durante 15 minutos, límite de 3 MB para solicitudes JSON, 5 MB para CVs y tiempos de conexión acotados. Estas cifras se pueden ajustar si el tráfico real lo requiere.
 
 ## 3. Estructura recomendada en el servidor
 
@@ -86,6 +88,7 @@ Crear `C:\CostaGrande\app\.env` manualmente y dar acceso solo al administrador y
 
 ```env
 PORT=3000
+MAX_CONNECTIONS=500
 EMAIL_NOTIFICATIONS_ENABLED=true
 RESEND_API_KEY=REEMPLAZAR_CON_LA_CLAVE_REAL
 RESEND_TEST_RECIPIENT=correo-pruebas@empresa.pe
@@ -96,6 +99,7 @@ ANALYTICS_ENABLED=true
 ```
 
 - `RESEND_SALES_RECIPIENT`: correo corporativo que recibe las cotizaciones en producción.
+- `MAX_CONNECTIONS`: protección adicional del proceso Node; mantener Caddy como punto de entrada público.
 - `RESEND_FROM`: remitente perteneciente a un dominio validado en Resend.
 - En Resend, validar el dominio corporativo mediante sus registros DNS SPF/DKIM antes de activar los avisos.
 - En Google Cloud, restringir la clave de Maps al dominio final (`https://www.empresa.pe/*` y, si corresponde, `https://empresa.pe/*`).
@@ -162,6 +166,7 @@ Get-Service CostaGrandeApp,CostaGrandeProxy
 - Bloquear entrada externa a 3000. El acceso de Node debe ser solo local.
 - Limitar RDP (3389) a VPN o IPs administrativas autorizadas.
 - Proteger el acceso a `/admin` con cuentas, contraseñas robustas y HTTPS. No dejar usuarios de ejemplo activos.
+- La aplicación limita solicitudes por IP, intentos de inicio de sesión y el tamaño de solicitudes. Estas medidas mitigan abuso a nivel aplicación, pero no sustituyen un firewall, el proxy Caddy ni protección anti-DDoS del proveedor de red.
 
 ## 11. Backup diario
 
