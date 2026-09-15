@@ -11,11 +11,11 @@ Primera versión local de la plataforma. No requiere cuentas externas ni AWS.
 
 ## Cómo iniciarlo
 
-1. Abre una nueva ventana de PowerShell o reinicia Codex para que reconozca Node.js.
+1. Abre una nueva ventana de PowerShell para que reconozca Node.js.
 2. Entra a esta carpeta:
 
    ```powershell
-   cd "C:\Users\javie\Documents\Codex\2026-08-30\referenced-chatgpt-conversation-this-is-an\mvp-catalogo"
+   cd "C:\Users\javie\Documents\Proyectos\2026-08-30\CostaGrande\mvp-catalogo"
    ```
 
 3. Inicia la aplicación:
