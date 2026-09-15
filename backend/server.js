@@ -19,7 +19,7 @@ const loginAttemptLimits = new Map();
 const loginFailureLimitsByIp = new Map();
 const loginFailureLimitsByAccount = new Map();
 
-function sendJson(response, status, data, headers = {}) { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...headers }); response.end(JSON.stringify(data)); }
+function sendJson(response, status, data, headers = {}) { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers }); response.end(JSON.stringify(data)); }
 function serveFile(response, fileName, contentType) { fs.readFile(path.join(frontendPath, fileName), (error, content) => { if (error) { response.writeHead(404); response.end('No encontrado'); return; } response.writeHead(200, { 'Content-Type': contentType }); response.end(content); }); }
 function serveDataImage(response, image) { const match = String(image || '').match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/); if (!match) { response.writeHead(404); response.end('Imagen no encontrada'); return; } response.writeHead(200, { 'Content-Type': match[1], 'Cache-Control': 'public, max-age=86400' }); response.end(Buffer.from(match[2], 'base64')); }
 function serveImage(response, image) { if (String(image || '').startsWith('data:image/')) return serveDataImage(response, image); const file = database.getMediaFile(image); if (!file) { response.writeHead(404); response.end('Imagen no encontrada'); return; } response.writeHead(200, { 'Content-Type': file.mime, 'Cache-Control': 'public, max-age=31536000, immutable' }); fs.createReadStream(file.path).on('error', () => { if (!response.headersSent) response.writeHead(404); response.end('Imagen no encontrada'); }).pipe(response); }
