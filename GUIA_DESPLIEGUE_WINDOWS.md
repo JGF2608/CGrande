@@ -9,7 +9,7 @@ Esta guía aplica a la versión actual de Costa Grande: una aplicación Node.js 
 - Dominio o subdominio definitivo, por ejemplo `www.empresa.pe`, y acceso a su DNS.
 - Al menos 2 vCPU, 4 GB de RAM y 40 GB de disco SSD. Aumentar el disco según los CVs esperados: cada CV puede ocupar hasta 5 MB.
 - Permiso para abrir los puertos públicos 80 (HTTP) y 443 (HTTPS). El puerto 3389/RDP debe limitarse a IPs o VPN de confianza.
-- Salida HTTPS a Internet para Resend y Google Maps.
+- Salida SMTP segura hacia el servidor de correo y salida HTTPS para Google Maps.
 
 ## 2. Qué es infraestructura y qué requiere ajuste de código
 
@@ -107,18 +107,22 @@ MAX_CONNECTIONS=500
 APP_DATA_DIR=C:\CostaGrande\data
 APP_ENV_FILE=C:\CostaGrande\config\costa-grande.env
 EMAIL_NOTIFICATIONS_ENABLED=true
-RESEND_API_KEY=REEMPLAZAR_CON_LA_CLAVE_REAL
-RESEND_TEST_RECIPIENT=correo-pruebas@empresa.pe
-RESEND_SALES_RECIPIENT=correo-corporativo@empresa.pe
-RESEND_FROM=notificaciones@empresa.pe
+SMTP_HOST=costagrande.com.pe
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=ventas@costagrande.com.pe
+SMTP_PASSWORD=REEMPLAZAR_CON_LA_CONTRASEÑA_REAL
+SMTP_FROM=ventas@costagrande.com.pe
+EMAIL_TEST_RECIPIENT=correo-pruebas@empresa.pe
+EMAIL_SALES_RECIPIENT=ventas@costagrande.com.pe
 GOOGLE_MAPS_API_KEY=REEMPLAZAR_CON_LA_CLAVE_REAL
 ANALYTICS_ENABLED=true
 ```
 
-- `RESEND_SALES_RECIPIENT`: correo corporativo que recibe las cotizaciones en producción.
+- `EMAIL_SALES_RECIPIENT`: correo corporativo que recibe las cotizaciones en producción.
 - `MAX_CONNECTIONS`: protección adicional del proceso Node; mantener Caddy como punto de entrada público.
-- `RESEND_FROM`: remitente perteneciente a un dominio validado en Resend.
-- En Resend, validar el dominio corporativo mediante sus registros DNS SPF/DKIM antes de activar los avisos.
+- `SMTP_FROM`: remitente de la cuenta corporativa configurada en cPanel.
+- En cPanel, comprobar la configuración SPF y DKIM desde la sección de entregabilidad del correo.
 - En Google Cloud, restringir la clave de Maps al dominio final (`https://www.empresa.pe/*` y, si corresponde, `https://empresa.pe/*`).
 
 ## 7. Prueba local en el servidor
@@ -206,7 +210,7 @@ Programar este proceso diariamente mediante el Programador de tareas de Windows 
 2. `http://` redirige a HTTPS.
 3. El puerto 3000 no responde desde otra computadora.
 4. El favicon, imágenes, popup y banners cargan correctamente.
-5. Se recibe una cotización en `RESEND_SALES_RECIPIENT`.
+5. Se recibe una cotización en `EMAIL_SALES_RECIPIENT`.
 6. Se carga y descarga un CV desde administración.
 7. Se reinicia el servidor y los dos servicios vuelven a iniciar automáticamente.
 8. Se ejecuta una copia de seguridad y se verifica que contiene la BD y `uploads`.

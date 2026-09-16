@@ -6,12 +6,16 @@
   "_comentarios": {
     "main": "Indica el archivo principal que inicia el servidor de la aplicación.",
     "scripts": "Define los comandos para iniciar la aplicación y comprobar la sintaxis del servidor.",
+    "dependencies": "Instala Nodemailer para enviar notificaciones mediante el servidor SMTP de cPanel.",
     "engines": "Exige una versión de Node.js compatible con el módulo integrado node:sqlite."
   },
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
     "check": "node --check backend/server.js"
+  },
+  "dependencies": {
+    "nodemailer": "^10.0.9"
   },
   "engines": {
     "node": ">=22.13.0"

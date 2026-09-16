@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
 const database = require('../base_de_datos/base_de_datos');
 
 const templateDefinitions = {
@@ -25,20 +26,44 @@ function loadLocalEnvironment() {
 loadLocalEnvironment();
 
 function areNotificationsEnabled() { return String(process.env.EMAIL_NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true'; }
-// Reúne los datos necesarios para conectarse al servicio de correo.
-function getEmailConfiguration() { return { enabled: areNotificationsEnabled(), ready: Boolean(process.env.RESEND_API_KEY && process.env.RESEND_TEST_RECIPIENT), recipient: process.env.RESEND_TEST_RECIPIENT || '', salesRecipient: process.env.RESEND_SALES_RECIPIENT || '', from: process.env.RESEND_FROM || 'onboarding@resend.dev' }; }
-function getEmailConfigurationStatus() { const configuration = getEmailConfiguration(); return { enabled: configuration.enabled, ready: configuration.enabled && configuration.ready, apiKeyConfigured: Boolean(process.env.RESEND_API_KEY), testRecipientConfigured: Boolean(configuration.recipient), salesRecipientConfigured: Boolean(configuration.salesRecipient), from: configuration.from }; }
+// Reúne los datos necesarios para conectarse al servidor SMTP de cPanel.
+function getEmailConfiguration() {
+  const port = Number(process.env.SMTP_PORT || 465);
+  const secure = String(process.env.SMTP_SECURE ?? (port === 465)).toLowerCase() === 'true';
+  const user = process.env.SMTP_USER || '';
+  return {
+    enabled: areNotificationsEnabled(),
+    host: process.env.SMTP_HOST || 'costagrande.com.pe',
+    port,
+    secure,
+    user,
+    password: process.env.SMTP_PASSWORD || '',
+    recipient: process.env.EMAIL_TEST_RECIPIENT || '',
+    salesRecipient: process.env.EMAIL_SALES_RECIPIENT || user,
+    from: process.env.SMTP_FROM || user,
+  };
+}
+function getEmailConfigurationStatus() {
+  const configuration = getEmailConfiguration();
+  const ready = Boolean(configuration.host && configuration.port && configuration.user && configuration.password && configuration.recipient && configuration.from);
+  return { enabled: configuration.enabled, ready: configuration.enabled && ready, host: configuration.host, port: configuration.port, secure: configuration.secure, user: configuration.user, passwordConfigured: Boolean(configuration.password), testRecipientConfigured: Boolean(configuration.recipient), salesRecipientConfigured: Boolean(configuration.salesRecipient), from: configuration.from };
+}
 
 // Guarda la configuración de correo para las notificaciones.
-function saveEmailConfiguration({ apiKey, recipient, salesRecipient, from }) {
-  if (apiKey && (apiKey.length < 10 || /[\r\n]/.test(apiKey))) throw new Error('La API Key no tiene un formato válido.');
+function saveEmailConfiguration({ host, port, secure, user, password, recipient, salesRecipient, from }) {
+  if (host && (!/^[a-z0-9.-]+$/i.test(host) || /[\r\n]/.test(host))) throw new Error('Ingresa un servidor SMTP válido.');
+  const smtpPort = Number(port || process.env.SMTP_PORT || 465);
+  if (!Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535) throw new Error('Ingresa un puerto SMTP válido.');
+  if (user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user)) throw new Error('Ingresa un usuario SMTP válido.');
+  if (password && /[\r\n]/.test(password)) throw new Error('La contraseña SMTP no tiene un formato válido.');
   if (recipient && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) throw new Error('Ingresa un correo de prueba válido.');
   if (salesRecipient && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(salesRecipient)) throw new Error('Ingresa un correo válido para ventas.');
   if (from && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) throw new Error('Ingresa un remitente válido.');
-  if (!apiKey && !process.env.RESEND_API_KEY) throw new Error('Ingresa la API Key de Resend.');
-  if (!recipient && !process.env.RESEND_TEST_RECIPIENT) throw new Error('Ingresa el correo personal que recibirá la prueba.');
-  const values = { PORT: process.env.PORT || '3000', MAX_CONNECTIONS: process.env.MAX_CONNECTIONS || '500', APP_DATA_DIR: process.env.APP_DATA_DIR || '', APP_ENV_FILE: process.env.APP_ENV_FILE || '', EMAIL_NOTIFICATIONS_ENABLED: process.env.EMAIL_NOTIFICATIONS_ENABLED || 'false', RESEND_API_KEY: apiKey || process.env.RESEND_API_KEY, RESEND_TEST_RECIPIENT: recipient || process.env.RESEND_TEST_RECIPIENT, RESEND_SALES_RECIPIENT: salesRecipient || process.env.RESEND_SALES_RECIPIENT || recipient || process.env.RESEND_TEST_RECIPIENT, RESEND_FROM: from || process.env.RESEND_FROM || 'onboarding@resend.dev', GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || '', ANALYTICS_ENABLED: process.env.ANALYTICS_ENABLED || 'false' };
-  const content = `# Archivo privado de configuración. No lo compartas ni lo subas a Internet.\nPORT=${values.PORT}\nMAX_CONNECTIONS=${values.MAX_CONNECTIONS}\nAPP_DATA_DIR=${values.APP_DATA_DIR}\nAPP_ENV_FILE=${values.APP_ENV_FILE}\n\nEMAIL_NOTIFICATIONS_ENABLED=${values.EMAIL_NOTIFICATIONS_ENABLED}\nRESEND_API_KEY=${values.RESEND_API_KEY}\nRESEND_TEST_RECIPIENT=${values.RESEND_TEST_RECIPIENT}\nRESEND_SALES_RECIPIENT=${values.RESEND_SALES_RECIPIENT}\nRESEND_FROM=${values.RESEND_FROM}\n\n# Clave de Google Maps. Restringirla al dominio de la web en Google Cloud.\nGOOGLE_MAPS_API_KEY=${values.GOOGLE_MAPS_API_KEY}\nANALYTICS_ENABLED=${values.ANALYTICS_ENABLED}\n`;
+  if (!password && !process.env.SMTP_PASSWORD) throw new Error('Ingresa la contraseña de la cuenta de correo.');
+  if (!recipient && !process.env.EMAIL_TEST_RECIPIENT) throw new Error('Ingresa el correo que recibirá la prueba.');
+  const smtpUser = user || process.env.SMTP_USER || 'ventas@costagrande.com.pe';
+  const values = { PORT: process.env.PORT || '3000', MAX_CONNECTIONS: process.env.MAX_CONNECTIONS || '500', APP_DATA_DIR: process.env.APP_DATA_DIR || '', APP_ENV_FILE: process.env.APP_ENV_FILE || '', EMAIL_NOTIFICATIONS_ENABLED: process.env.EMAIL_NOTIFICATIONS_ENABLED || 'false', SMTP_HOST: host || process.env.SMTP_HOST || 'costagrande.com.pe', SMTP_PORT: String(smtpPort), SMTP_SECURE: String(secure ?? process.env.SMTP_SECURE ?? 'true'), SMTP_USER: smtpUser, SMTP_PASSWORD: password || process.env.SMTP_PASSWORD, SMTP_FROM: from || process.env.SMTP_FROM || smtpUser, EMAIL_TEST_RECIPIENT: recipient || process.env.EMAIL_TEST_RECIPIENT, EMAIL_SALES_RECIPIENT: salesRecipient || process.env.EMAIL_SALES_RECIPIENT || smtpUser, GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || '', ANALYTICS_ENABLED: process.env.ANALYTICS_ENABLED || 'false' };
+  const content = `# Archivo privado de configuración. No lo compartas ni lo subas a Internet.\nPORT=${values.PORT}\nMAX_CONNECTIONS=${values.MAX_CONNECTIONS}\nAPP_DATA_DIR=${values.APP_DATA_DIR}\nAPP_ENV_FILE=${values.APP_ENV_FILE}\n\nEMAIL_NOTIFICATIONS_ENABLED=${values.EMAIL_NOTIFICATIONS_ENABLED}\nSMTP_HOST=${values.SMTP_HOST}\nSMTP_PORT=${values.SMTP_PORT}\nSMTP_SECURE=${values.SMTP_SECURE}\nSMTP_USER=${values.SMTP_USER}\nSMTP_PASSWORD=${values.SMTP_PASSWORD}\nSMTP_FROM=${values.SMTP_FROM}\nEMAIL_TEST_RECIPIENT=${values.EMAIL_TEST_RECIPIENT}\nEMAIL_SALES_RECIPIENT=${values.EMAIL_SALES_RECIPIENT}\n\n# Clave de Google Maps. Restringirla al dominio de la web en Google Cloud.\nGOOGLE_MAPS_API_KEY=${values.GOOGLE_MAPS_API_KEY}\nANALYTICS_ENABLED=${values.ANALYTICS_ENABLED}\n`;
   const envPath = environmentFilePath(); fs.mkdirSync(path.dirname(envPath), { recursive: true }); fs.writeFileSync(envPath, content, { encoding: 'utf8', mode: 0o600 }); Object.assign(process.env, values); return getEmailConfigurationStatus();
 }
 
@@ -52,16 +77,18 @@ function renderTemplate(type, values) { const template = database.getEmailTempla
 
 // Envía el mensaje con la configuración de correo activa.
 async function sendEmail({ to, subject, text }) {
-  const configuration = getEmailConfiguration(); if (!configuration.enabled) return { skipped: true }; if (!process.env.RESEND_API_KEY) throw new Error('Falta configurar la API Key de Resend.'); if (!to) throw new Error('Falta definir el destinatario del correo.');
-  if (configuration.from === 'onboarding@resend.dev' && to.toLowerCase() !== configuration.recipient.toLowerCase()) { console.log(`Correo pendiente para ${to}: se enviará al verificar el dominio empresarial.`); return { skipped: true }; }
-  let response; try { response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: configuration.from, to: [to], subject, text }) }); } catch (error) { console.log(`No fue posible conectar con Resend: ${error.cause?.message || error.message}`); throw new Error('No fue posible conectar con Resend. Revisa la conexión a internet, VPN, proxy o firewall de esta laptop.'); }
-  const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.message || result.name || 'Resend no pudo enviar el correo.'); return result;
+  const configuration = getEmailConfiguration();
+  if (!configuration.enabled) return { skipped: true };
+  if (!configuration.host || !configuration.user || !configuration.password || !configuration.from) throw new Error('Falta completar la configuración SMTP.');
+  if (!to) throw new Error('Falta definir el destinatario del correo.');
+  const transporter = nodemailer.createTransport({ host: configuration.host, port: configuration.port, secure: configuration.secure, auth: { user: configuration.user, pass: configuration.password } });
+  try { return await transporter.sendMail({ from: configuration.from, to, subject, text }); } catch (error) { console.log(`No fue posible enviar el correo por SMTP: ${error.message}`); throw new Error('No fue posible enviar el correo por SMTP. Revisa el servidor, puerto, usuario, contraseña y acceso SSL/TLS.'); }
 }
 
 function exampleValues() { return { quote_code: 'COT-0001', order_code: 'PED-0001', customer_name: 'María Pérez', customer_email: 'maria@ejemplo.com', product: 'Producto de ejemplo', message: 'Necesito información sobre disponibilidad.', quantity: '10', unit: 'caj', estimated_delivery_date: '15/09/2026' }; }
 // Envía un correo de prueba a la dirección configurada.
-async function sendTestEmail() { const configuration = getEmailConfiguration(); if (!configuration.enabled) throw new Error('El módulo de correos está desactivado.'); if (!configuration.ready) throw new Error('Falta configurar la API Key o el correo de prueba en el archivo .env.'); await sendEmail({ to: configuration.recipient, subject: 'Prueba de correo — Costa Grande', text: 'La conexión funciona. Este correo confirma que Costa Grande puede comunicarse con Resend.' }); }
-async function sendTemplateTest(type) { const configuration = getEmailConfiguration(); if (!configuration.enabled || !configuration.ready) throw new Error('Completa primero la configuración de correo para enviar una prueba.'); await sendEmail({ to: configuration.recipient, ...renderTemplate(type, exampleValues()) }); }
+async function sendTestEmail() { const configuration = getEmailConfiguration(); const status = getEmailConfigurationStatus(); if (!configuration.enabled) throw new Error('El módulo de correos está desactivado.'); if (!status.ready) throw new Error('Falta completar la configuración SMTP o el correo de prueba.'); await sendEmail({ to: configuration.recipient, subject: 'Prueba de correo — Costa Grande', text: 'La conexión funciona. Este correo confirma que Costa Grande puede enviar notificaciones mediante el servidor SMTP de cPanel.' }); }
+async function sendTemplateTest(type) { const configuration = getEmailConfiguration(); if (!getEmailConfigurationStatus().ready) throw new Error('Completa primero la configuración SMTP para enviar una prueba.'); await sendEmail({ to: configuration.recipient, ...renderTemplate(type, exampleValues()) }); }
 
 // Prepara las notificaciones de una cotización nueva.
 function notifyNewQuote(quote) { const configuration = getEmailConfiguration(), values = { quote_code: quote.code, customer_name: quote.name, customer_email: quote.email, product: quote.product, message: quote.message || 'Sin detalle adicional.' }; return Promise.allSettled([configuration.salesRecipient ? sendEmail({ to: configuration.salesRecipient, ...renderTemplate('quote_sales', values) }) : Promise.resolve(), sendEmail({ to: quote.email, ...renderTemplate('quote_customer', values) })]); }
