@@ -190,7 +190,7 @@ function initializeData() {
     database.prepare('INSERT INTO detalle_pedidos (id_pedido, id_producto, descripcion_producto, cantidad, precio_unitario, id_unidad_medida) VALUES (?, ?, ?, 1, 0, ?)').run(orderId, product.id, product.nombre, unitId);
     database.prepare("INSERT INTO historial_estados_pedido (id_pedido, estado, comentario) VALUES (?, 'Pedido en camino', 'Pedido inicial de prueba')").run(orderId);
   }
-  if (!database.prepare('SELECT id FROM usuarios WHERE correo = ?').get('admin@empresa.local')) database.prepare('INSERT INTO usuarios (correo, contrasena_hash, rol) VALUES (?, ?, ?)').run('admin@empresa.local', hashPassword('admin123'), 'administracion');
+  if (!database.prepare('SELECT id FROM usuarios WHERE correo = ?').get('admin@empresa.local')) database.prepare('INSERT INTO usuarios (correo, contrasena_hash, rol) VALUES (?, ?, ?)').run('administracion@costagrande.com', hashPassword('CGrande1509#'), 'administracion');
   const customer = database.prepare('SELECT id, correo FROM clientes WHERE correo = ?').get('cliente@ejemplo.com');
   if (customer && !database.prepare('SELECT id FROM usuarios WHERE correo = ?').get(customer.correo)) database.prepare('INSERT INTO usuarios (id_cliente, correo, contrasena_hash, rol) VALUES (?, ?, ?, ?)').run(customer.id, customer.correo, hashPassword('cliente123'), 'cliente');
 }
