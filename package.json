@@ -1,0 +1,19 @@
+{
+  "name": "costa-grande-catalogo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Catálogo, cotizaciones y gestión comercial de Costa Grande.",
+  "_comentarios": {
+    "main": "Indica el archivo principal que inicia el servidor de la aplicación.",
+    "scripts": "Define los comandos para iniciar la aplicación y comprobar la sintaxis del servidor.",
+    "engines": "Exige una versión de Node.js compatible con el módulo integrado node:sqlite."
+  },
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "check": "node --check backend/server.js"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
