@@ -3,6 +3,7 @@ const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
 const { sourceDirectory, databasePath } = require('./rutas_datos');
 
+// Lee el esquema y crea las tablas necesarias para iniciar la base de datos.
 const schemaPath = path.join(sourceDirectory, 'esquema.sql');
 const database = new DatabaseSync(databasePath);
 

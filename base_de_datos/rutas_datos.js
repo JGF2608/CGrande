@@ -1,7 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
+// Ubica la carpeta de datos de la aplicación.
 const sourceDirectory = __dirname;
+// Conserva los archivos de datos en la ruta configurada.
 const dataDirectory = path.resolve(process.env.APP_DATA_DIR || sourceDirectory);
 
 fs.mkdirSync(dataDirectory, { recursive: true });

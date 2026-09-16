@@ -9,7 +9,9 @@ const templateDefinitions = {
   order_in_transit: { title: 'Pedido en camino', variables: ['{{order_code}}', '{{customer_name}}', '{{estimated_delivery_date}}', '{{company_name}}', '{{company_phone}}', '{{company_signature}}'] },
 };
 
+// Ubica el archivo de configuración local del correo.
 function environmentFilePath() { return path.resolve(process.env.APP_ENV_FILE || path.join(__dirname, '..', '.env')); }
+// Lee la configuración local utilizada para enviar notificaciones.
 function loadLocalEnvironment() {
   const envPath = environmentFilePath();
   if (!fs.existsSync(envPath)) return;
@@ -23,9 +25,11 @@ function loadLocalEnvironment() {
 loadLocalEnvironment();
 
 function areNotificationsEnabled() { return String(process.env.EMAIL_NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true'; }
+// Reúne los datos necesarios para conectarse al servicio de correo.
 function getEmailConfiguration() { return { enabled: areNotificationsEnabled(), ready: Boolean(process.env.RESEND_API_KEY && process.env.RESEND_TEST_RECIPIENT), recipient: process.env.RESEND_TEST_RECIPIENT || '', salesRecipient: process.env.RESEND_SALES_RECIPIENT || '', from: process.env.RESEND_FROM || 'onboarding@resend.dev' }; }
 function getEmailConfigurationStatus() { const configuration = getEmailConfiguration(); return { enabled: configuration.enabled, ready: configuration.enabled && configuration.ready, apiKeyConfigured: Boolean(process.env.RESEND_API_KEY), testRecipientConfigured: Boolean(configuration.recipient), salesRecipientConfigured: Boolean(configuration.salesRecipient), from: configuration.from }; }
 
+// Guarda la configuración de correo para las notificaciones.
 function saveEmailConfiguration({ apiKey, recipient, salesRecipient, from }) {
   if (apiKey && (apiKey.length < 10 || /[\r\n]/.test(apiKey))) throw new Error('La API Key no tiene un formato válido.');
   if (recipient && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) throw new Error('Ingresa un correo de prueba válido.');
@@ -41,9 +45,12 @@ function saveEmailConfiguration({ apiKey, recipient, salesRecipient, from }) {
 function getEmailTemplates() { return { templates: database.listEmailTemplates().map((template) => ({ ...template, title: templateDefinitions[template.type]?.title || template.type, variables: templateDefinitions[template.type]?.variables || [] })), signature: database.getCompanySettings().emailSignature || '' }; }
 function saveEmailTemplate(type, data) { if (!templateDefinitions[type]) throw new Error('El tipo de notificación no es válido.'); const subject = String(data.subject || '').trim(), body = String(data.body || '').trim(); if (!subject || !body) throw new Error('Completa el asunto y el contenido de la plantilla.'); if (subject.length > 180 || body.length > 10000) throw new Error('La plantilla excede el tamaño permitido.'); return database.updateEmailTemplate(type, { subject, body }); }
 function saveEmailSignature(signature) { const value = String(signature || '').trim(); if (value.length > 2000) throw new Error('La firma excede el tamaño permitido.'); return database.updateEmailSignature(value); }
+// Prepara los datos que reemplazan las variables de cada plantilla.
 function templateValues(values = {}) { const settings = database.getCompanySettings(); return { company_name: 'Costa Grande', company_phone: settings.contactPhone || 'Por configurar', company_signature: settings.emailSignature || 'Costa Grande', ...values }; }
+// Sustituye las variables y la firma en el contenido del correo.
 function renderTemplate(type, values) { const template = database.getEmailTemplate(type); if (!template || !templateDefinitions[type]) throw new Error('No se encontró la plantilla de correo.'); const replacements = templateValues(values); const replace = (content) => String(content).replace(/{{\s*([a-z_]+)\s*}}/gi, (_, name) => String(replacements[name.toLowerCase()] ?? '')); return { subject: replace(template.subject), text: replace(template.body) }; }
 
+// Envía el mensaje con la configuración de correo activa.
 async function sendEmail({ to, subject, text }) {
   const configuration = getEmailConfiguration(); if (!configuration.enabled) return { skipped: true }; if (!process.env.RESEND_API_KEY) throw new Error('Falta configurar la API Key de Resend.'); if (!to) throw new Error('Falta definir el destinatario del correo.');
   if (configuration.from === 'onboarding@resend.dev' && to.toLowerCase() !== configuration.recipient.toLowerCase()) { console.log(`Correo pendiente para ${to}: se enviará al verificar el dominio empresarial.`); return { skipped: true }; }
@@ -52,11 +59,15 @@ async function sendEmail({ to, subject, text }) {
 }
 
 function exampleValues() { return { quote_code: 'COT-0001', order_code: 'PED-0001', customer_name: 'María Pérez', customer_email: 'maria@ejemplo.com', product: 'Producto de ejemplo', message: 'Necesito información sobre disponibilidad.', quantity: '10', unit: 'caj', estimated_delivery_date: '15/09/2026' }; }
+// Envía un correo de prueba a la dirección configurada.
 async function sendTestEmail() { const configuration = getEmailConfiguration(); if (!configuration.enabled) throw new Error('El módulo de correos está desactivado.'); if (!configuration.ready) throw new Error('Falta configurar la API Key o el correo de prueba en el archivo .env.'); await sendEmail({ to: configuration.recipient, subject: 'Prueba de correo — Costa Grande', text: 'La conexión funciona. Este correo confirma que Costa Grande puede comunicarse con Resend.' }); }
 async function sendTemplateTest(type) { const configuration = getEmailConfiguration(); if (!configuration.enabled || !configuration.ready) throw new Error('Completa primero la configuración de correo para enviar una prueba.'); await sendEmail({ to: configuration.recipient, ...renderTemplate(type, exampleValues()) }); }
 
+// Prepara las notificaciones de una cotización nueva.
 function notifyNewQuote(quote) { const configuration = getEmailConfiguration(), values = { quote_code: quote.code, customer_name: quote.name, customer_email: quote.email, product: quote.product, message: quote.message || 'Sin detalle adicional.' }; return Promise.allSettled([configuration.salesRecipient ? sendEmail({ to: configuration.salesRecipient, ...renderTemplate('quote_sales', values) }) : Promise.resolve(), sendEmail({ to: quote.email, ...renderTemplate('quote_customer', values) })]); }
+// Prepara la notificación cuando se crea un pedido.
 function notifyOrderCreated(order) { return sendEmail({ to: order.customerEmail, ...renderTemplate('order_created', { order_code: order.code, customer_name: order.customer, product: order.product, quantity: order.quantity, unit: order.unit, estimated_delivery_date: order.estimatedDeliveryDate || 'Por confirmar' }) }); }
+// Prepara la notificación cuando un pedido sale a reparto.
 function notifyOrderInTransit(order) { return sendEmail({ to: order.customerEmail, ...renderTemplate('order_in_transit', { order_code: order.code, customer_name: order.customer, estimated_delivery_date: order.estimatedDeliveryDate || 'Por confirmar' }) }); }
 
 module.exports = { getEmailConfiguration, getEmailConfigurationStatus, saveEmailConfiguration, getEmailTemplates, saveEmailTemplate, saveEmailSignature, sendTestEmail, sendTemplateTest, notifyNewQuote, notifyOrderCreated, notifyOrderInTransit };

@@ -1,8 +1,10 @@
 const repository = require('./analytics-repository');
 
+// Limita los tipos de eventos que admite la medición web.
 const allowedEvents = new Set(['visita_web', 'categoria_abierta', 'producto_consultado', 'clic_whatsapp']);
 const cleanText = (value, limit = 120) => String(value || '').trim().replace(/[<>]/g, '').slice(0, limit);
 
+// Expone el registro de eventos y el resumen para el dashboard.
 function createAnalyticsService({ getBusinessSnapshot }) {
   function enabled() { return String(process.env.ANALYTICS_ENABLED || 'false').toLowerCase() === 'true'; }
   function recordEvent(data) {

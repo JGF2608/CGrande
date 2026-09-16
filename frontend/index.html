@@ -8,25 +8,32 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <!-- PÁGINA PÚBLICA: encabezado, carrusel, catálogo, socios, indicadores, historia, puntos de recojo, cotización y pie de página. -->
+    <!-- PÁGINA PÚBLICA: reúne la navegación, el catálogo, la historia, los puntos de recojo y los formularios. -->
+    <!-- Muestra la navegación, los enlaces sociales y el acceso a la cuenta. -->
     <header class="public-header">
       <div class="header-top"><a class="logo" href="#inicio" aria-label="Negocios Costa Grande, inicio"><img class="company-logo-image" src="/assets/logo-negocios-costa-grande.png" alt="Negocios Costa Grande" /></a><a class="store-finder-link header-store-finder" href="#contacto">Encuentra tu tienda <span aria-hidden="true">↗</span></a></div>
       <div class="header-bottom"><button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span><span></span></button><nav id="main-navigation"><a href="#productos">Productos</a><a href="#empresa">Empresa</a><a href="#proposito">Nosotros</a><a href="#historia">Historia</a><a href="#cotizacion">Cotizar</a><span id="session-menu" class="session-menu"><a id="session-access" class="session-access" href="/login" aria-label="Iniciar sesión">Iniciar sesión</a></span></nav><div class="header-social social-buttons" aria-label="Redes sociales"><a id="header-social-facebook" class="social-button hidden" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.7 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5h1.7V3.9c-.3 0-1.3-.1-2.4-.1-2.4 0-4.1 1.5-4.1 4.2V10H7.7v3h2.8v8h3.2Z" fill="currentColor"/></svg></a><a id="header-social-instagram" class="social-button hidden" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.8" r="1.2" fill="currentColor"/></svg></a><a id="header-social-linkedin" class="social-button hidden" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.1 8.2H3.3V21h2.8V8.2ZM4.7 3A1.7 1.7 0 1 0 4.7 6.4 1.7 1.7 0 0 0 4.7 3ZM20.7 13.7c0-3.9-2.1-5.7-4.8-5.7-2.2 0-3.2 1.2-3.8 2.1V8.2H9.3V21h2.8v-6.3c0-1.7.3-3.3 2.4-3.3 2.1 0 2.1 1.9 2.1 3.4V21h2.8v-7.3Z" fill="currentColor"/></svg></a></div></div>
     </header>
     <div id="promotional-popup" class="promotional-popup hidden" role="dialog" aria-modal="true" aria-label="Publicidad u oferta especial"><div class="promotional-popup-card"><button id="close-promotional-popup" class="promotional-popup-close" type="button" aria-label="Cerrar publicidad">×</button><img id="promotional-popup-image" alt="Publicidad u oferta especial" /></div></div>
     <main>
+      <!-- Presenta los banners del inicio de la página. -->
       <section id="inicio" class="hero">
         <div class="hero-visual" id="hero-visual"><section id="banners" class="promo-carousel" aria-label="Banners publicitarios"><div id="banner-slider" class="banner-slider" aria-live="polite"></div><button id="banner-previous" class="banner-arrow banner-arrow-previous" type="button" aria-label="Ver imagen anterior">‹</button><div id="banner-numbers" class="banner-numbers" aria-label="Navegación de banners"></div><button id="banner-next" class="banner-arrow banner-arrow-next" type="button" aria-label="Ver imagen siguiente">›</button></section></div>
       </section>
+      <!-- Muestra las categorías y los productos del catálogo. -->
       <section id="productos" class="section catalog-section">
         <div class="catalog-intro"><p class="eyebrow">NUESTRO CATÁLOGO</p><h2 id="catalog-title">Conoce nuestros <em>productos</em></h2><p>Explora las categorías de Costa Grande y encuentra la solución que necesitas.</p></div>
         <div id="catalog-navigation" class="catalog-navigation" aria-label="Filtros del catálogo"></div><div id="catalog-carousel-shell" class="catalog-carousel-shell"><button id="catalog-previous" class="catalog-arrow hidden" type="button" aria-label="Ver categorías anteriores">‹</button><div id="product-list" class="product-list catalog-grid"></div><button id="catalog-next" class="catalog-arrow hidden" type="button" aria-label="Ver más categorías">›</button></div>
       </section>
+      <!-- Presenta la información institucional de la empresa. -->
       <section id="empresa" class="section company">
         <div class="company-content"><div class="company-copy"><p class="eyebrow">SOBRE NOSOTROS</p><h2>Una empresa preparada para acompañarte.</h2><p id="about-description">Nuestra propuesta de valor se basa en combinar experiencia, cobertura comercial, capacidad logística y conocimiento de los mercados locales, ofreciendo un portafolio diversificado de productos de consumo masivo y atención cercana a nuestros clientes. La presencia a nivel nacional, junto con nuestra capacidad de distribución terrestre y fluvial, nos permite atender mercados de difícil acceso y generar oportunidades de crecimiento sostenible.</p></div><div class="company-visual"><img id="about-image" src="/assets/almacen-costa-grande.png" loading="lazy" decoding="async" fetchpriority="low" alt="Almacén y capacidad logística de Costa Grande"></div></div>
       </section>
+      <!-- Muestra los logos de los socios comerciales. -->
       <section id="socios" class="section commercial-partners" aria-labelledby="commercial-partners-title"><div class="partners-heading"><p class="eyebrow">NUESTRA RED</p><h2 id="commercial-partners-title">Socios comerciales</h2><p>Marcas y aliados que acompañan el crecimiento de Costa Grande.</p></div><div id="commercial-partners-track" class="commercial-partners-track" aria-live="polite"></div></section>
+      <!-- Presenta las cifras de experiencia de la empresa. -->
       <section id="indicadores" class="section kpi-section"><p class="eyebrow">NUESTRA EXPERIENCIA EN CIFRAS</p><h2>Indicadores que respaldan nuestro trabajo.</h2><div id="kpi-list" class="kpi-list"></div></section>
+      <!-- Explica el propósito y los valores de la empresa. -->
       <section id="proposito" class="section">
         <p class="eyebrow">NUESTRA ESENCIA</p><h2>Trabajamos con un propósito claro.</h2>
         <div class="values-grid">
@@ -35,14 +42,17 @@
           <article class="value-card"><span>↗</span><h3>Visión</h3><p>Ser una empresa referente en nuestro sector, reconocida por innovación, confianza y relaciones duraderas.</p></article>
         </div>
       </section>
+      <!-- Presenta los hitos de la historia en una línea de tiempo. -->
       <section id="historia" class="section timeline-section">
         <p class="eyebrow">NUESTRO CAMINO</p><h2>Conoce un poco de <span>nuestra trayectoria.</span></h2>
         <div class="timeline-carousel"><button id="timeline-previous" class="timeline-arrow" type="button" aria-label="Ver año anterior">‹</button><div id="timeline-slider" class="timeline-slider" aria-live="polite"></div><button id="timeline-next" class="timeline-arrow" type="button" aria-label="Ver siguiente año">›</button></div><div id="timeline-dots" class="timeline-dots" aria-label="Navegación de la línea de tiempo"></div>
       </section>
+      <!-- Muestra los puntos de recojo y sus ubicaciones en el mapa. -->
       <section id="contacto" class="section attention-section">
         <p class="eyebrow">PUNTOS DE RECOJO</p><h2>Estamos donde nos necesitas.</h2><div id="attention-contact-phone" class="attention-contact hidden"><span class="phone-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6.7 3.8 9 3.2l1.7 4.4-1.8 1.3a14.3 14.3 0 0 0 6.2 6.2l1.3-1.8 4.4 1.7-.6 2.3c-.3 1.1-1.4 1.8-2.5 1.6C10.1 17.7 6.3 13.9 5.1 6.3 4.9 5.2 5.6 4.1 6.7 3.8Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span><div><strong>Teléfono</strong><a></a></div></div>
         <div class="attention-layout"><div id="attention-list" class="attention-list"></div><div class="attention-map-card"><div id="attention-map" aria-label="Mapa de puntos de atención"></div><p id="attention-map-message" class="attention-map-message"></p></div></div>
       </section>
+      <!-- Permite solicitar una cotización con los productos elegidos. -->
       <section id="cotizacion" class="section split">
         <div><p class="eyebrow">COTIZACIONES</p><h2>Cuéntanos qué producto te interesa.</h2><p>Te contactaremos para entender tu necesidad y preparar una propuesta.</p></div>
         <form id="quote-form">
@@ -55,11 +65,13 @@
           <button class="button" type="submit">Solicitar cotización</button><p id="quote-message" class="message"></p>
         </form>
       </section>
+      <!-- Dirige al cliente hacia el seguimiento de sus pedidos. -->
       <section id="pedido" class="section tracking">
         <p class="eyebrow">SEGUIMIENTO DE PEDIDO</p><h2>Consulta tus pedidos desde tu cuenta.</h2>
         <p>Para proteger la información de tus pedidos, el seguimiento está disponible únicamente después de iniciar sesión.</p>
         <a id="tracking-access" class="button" href="/login">Iniciar sesión para ver mis pedidos</a>
       </section>
+      <!-- Permite enviar una postulación laboral con el CV adjunto. -->
       <section id="trabaja-con-nosotros" class="section careers">
         <div id="careers-layout" class="careers-layout"><div id="career-invitation"><p class="eyebrow">TRABAJA CON NOSOTROS</p><h2>¿Quieres formar parte de nuestro equipo?</h2><p>Envíanos tu información y CV para considerarte en futuras oportunidades.</p><button id="open-job-application" class="button" type="button">Postular ahora</button></div>
         <form id="job-application-form" class="career-form hidden" enctype="multipart/form-data"><div class="form-grid"><label>Nombres<input name="firstName" maxlength="100" required autocomplete="given-name" /></label><label>Apellidos<input name="lastName" maxlength="100" required autocomplete="family-name" /></label><label>Documento<span class="career-document-field"><select id="job-application-document-type" class="career-document-native" name="documentType" aria-label="Tipo de documento"><option value="DNI">DNI</option><option value="CE">CE</option></select><button id="job-application-document-toggle" class="career-document-toggle" type="button" aria-expanded="false"><span id="job-application-document-label">DNI</span><span aria-hidden="true">⌄</span></button><span id="job-application-document-options" class="career-document-options hidden"><button type="button" data-document-type="DNI"><strong>DNI</strong><small>Documento nacional</small></button><button type="button" data-document-type="CE"><strong>CE</strong><small>Carnet de extranjería</small></button></span><input name="dni" inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" required placeholder="12345678" /></span></label><div class="career-cv-field"><span>Currículum vitae (PDF)</span><small>Solo PDF, máximo 5 MB.</small></div></div><input id="job-application-cv" class="career-file-input" name="cv" type="file" accept="application/pdf,.pdf" required /><div class="career-form-footer"><span class="career-file-actions"><label for="job-application-cv" class="button" role="button">Subir archivo</label><span id="job-application-file-name" aria-live="polite">Ningún archivo seleccionado</span></span><div class="career-form-actions"><button class="button" type="submit">Enviar postulación</button><button id="cancel-job-application" class="button career-secondary-button" type="button">Cancelar</button></div></div><p id="job-application-message" class="message"></p></form></div>

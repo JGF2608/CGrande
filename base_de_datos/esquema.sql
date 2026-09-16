@@ -1,6 +1,6 @@
 PRAGMA foreign_keys = ON;
 
--- Datos maestros
+-- DATOS MAESTROS: organiza las categorías, unidades y configuración de la empresa.
 CREATE TABLE IF NOT EXISTS categorias_producto (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT NOT NULL UNIQUE,
@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS configuracion_empresa (
   fecha_actualizacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Guarda los asuntos y contenidos de las notificaciones por correo.
 CREATE TABLE IF NOT EXISTS plantillas_correo (
   tipo TEXT PRIMARY KEY,
   asunto TEXT NOT NULL,
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS plantillas_correo (
   fecha_actualizacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Guarda los indicadores adicionales que aparecen en la página pública.
 CREATE TABLE IF NOT EXISTS kpis_adicionales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   titulo TEXT NOT NULL,
@@ -51,6 +53,7 @@ CREATE TABLE IF NOT EXISTS kpis_adicionales (
   fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Registra los acontecimientos de la línea de tiempo.
 CREATE TABLE IF NOT EXISTS hitos_historia (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   anio INTEGER NOT NULL UNIQUE,
@@ -61,7 +64,7 @@ CREATE TABLE IF NOT EXISTS hitos_historia (
   fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Contenido comercial visible al inicio de la web.
+-- CONTENIDO COMERCIAL: guarda las imágenes y aliados visibles en la web.
 CREATE TABLE IF NOT EXISTS banners_publicitarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   titulo TEXT NOT NULL,
@@ -83,6 +86,7 @@ CREATE TABLE IF NOT EXISTS socios_comerciales (
   fecha_actualizacion TEXT
 );
 
+-- Guarda direcciones, horarios y coordenadas de los puntos de recojo.
 CREATE TABLE IF NOT EXISTS puntos_atencion (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT NOT NULL,
@@ -111,7 +115,7 @@ CREATE TABLE IF NOT EXISTS productos (
   FOREIGN KEY (id_unidad_medida) REFERENCES unidades_medida(id)
 );
 
--- Clientes y cotizaciones
+-- CLIENTES Y COTIZACIONES: relaciona usuarios, clientes y productos solicitados.
 CREATE TABLE IF NOT EXISTS clientes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tipo_documento TEXT,
@@ -140,6 +144,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   FOREIGN KEY (id_cliente) REFERENCES clientes(id)
 );
 
+-- Guarda las cuentas del personal de ventas.
 CREATE TABLE IF NOT EXISTS usuarios_ventas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT NOT NULL,
@@ -177,7 +182,7 @@ CREATE TABLE IF NOT EXISTS detalle_cotizaciones (
   FOREIGN KEY (id_unidad_medida) REFERENCES unidades_medida(id)
 );
 
--- Pedidos y seguimiento
+-- PEDIDOS Y SEGUIMIENTO: registra productos, estado y cambios de cada pedido.
 CREATE TABLE IF NOT EXISTS pedidos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   codigo TEXT NOT NULL UNIQUE,
@@ -214,6 +219,7 @@ CREATE TABLE IF NOT EXISTS historial_estados_pedido (
   FOREIGN KEY (id_pedido) REFERENCES pedidos(id) ON DELETE CASCADE
 );
 
+-- Conserva los datos y la referencia al CV de cada postulación laboral.
 CREATE TABLE IF NOT EXISTS postulaciones_laborales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombres TEXT NOT NULL,
@@ -228,6 +234,7 @@ CREATE TABLE IF NOT EXISTS postulaciones_laborales (
   UNIQUE (tipo_documento, dni)
 );
 
+-- Acelera las consultas por categoría, cliente, usuario y pedido.
 CREATE INDEX IF NOT EXISTS indice_productos_categoria ON productos(id_categoria);
 CREATE INDEX IF NOT EXISTS indice_cotizaciones_cliente ON cotizaciones(id_cliente);
 CREATE INDEX IF NOT EXISTS indice_usuarios_cliente ON usuarios(id_cliente);

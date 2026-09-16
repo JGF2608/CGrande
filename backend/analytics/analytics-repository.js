@@ -17,14 +17,18 @@ database.exec(`
   CREATE INDEX IF NOT EXISTS indice_eventos_categoria ON eventos_analitica(categoria_id);
 `);
 
+// Guarda un evento de navegación en la base de analítica.
 function record(event) {
   database.prepare('INSERT INTO eventos_analitica (tipo, sesion, categoria_id, categoria_nombre, producto_nombre, ruta) VALUES (?, ?, ?, ?, ?, ?)')
     .run(event.type, event.session, event.categoryId || null, event.categoryName || null, event.productName || null, event.path || null);
 }
 
+// Consulta las agrupaciones utilizadas por los gráficos del dashboard.
 function rows(statement, ...parameters) { return database.prepare(statement).all(...parameters); }
+// Cuenta los registros para los indicadores generales.
 function total(statement, ...parameters) { return Number(database.prepare(statement).get(...parameters).total || 0); }
 
+// Resume visitas, categorías exploradas y clics registrados.
 function behaviorSummary() {
   return {
     visits: total("SELECT COUNT(*) AS total FROM eventos_analitica WHERE tipo = 'visita_web'"),

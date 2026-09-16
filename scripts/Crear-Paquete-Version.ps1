@@ -1,3 +1,4 @@
+# Recibe la versión y las rutas necesarias para crear el paquete de despliegue.
 param(
   [Parameter(Mandatory)]
   [ValidatePattern('^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$')]
@@ -12,6 +13,7 @@ $output = New-Item -ItemType Directory -Force -Path $OutputPath
 $temporary = Join-Path $env:TEMP "CostaGrande-package-$([guid]::NewGuid())"
 $stage = Join-Path $temporary "CostaGrande-v$Version"
 
+# Copia el código sin archivos temporales ni datos privados y comprime la versión.
 try {
   New-Item -ItemType Directory -Force -Path $stage | Out-Null
   & robocopy $source $stage /E /XD .git node_modules uploads /XF .env *.db *.db-shm *.db-wal | Out-Null
@@ -22,5 +24,6 @@ try {
   Compress-Archive -Path $stage -DestinationPath $package -CompressionLevel Optimal
   Write-Host "Paquete creado: $package"
 } finally {
+  # Elimina la carpeta temporal después de crear el paquete.
   if (Test-Path $temporary) { Remove-Item -LiteralPath $temporary -Recurse -Force }
 }
