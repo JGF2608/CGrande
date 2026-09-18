@@ -6,9 +6,10 @@ const cleanText = (value, limit = 120) => String(value || '').trim().replace(/[<
 
 // Expone el registro de eventos y el resumen para el dashboard.
 function createAnalyticsService({ getBusinessSnapshot }) {
-  function enabled() { return String(process.env.ANALYTICS_ENABLED || 'false').toLowerCase() === 'true'; }
+  // Mantiene habilitados el registro de estadísticas y el dashboard sin depender del entorno.
+  function enabled() { return true; }
   function recordEvent(data) {
-    if (!enabled() || !allowedEvents.has(data.type)) return false;
+    if (!allowedEvents.has(data.type)) return false;
     const session = cleanText(data.session, 96);
     if (!session || !/^[a-zA-Z0-9_-]{12,96}$/.test(session)) throw new Error('Sesión de analítica inválida.');
     repository.record({
@@ -22,7 +23,6 @@ function createAnalyticsService({ getBusinessSnapshot }) {
     return true;
   }
   function getDashboard() {
-    if (!enabled()) return null;
     return { enabled: true, behavior: repository.behaviorSummary(), business: getBusinessSnapshot() };
   }
   return { enabled, recordEvent, getDashboard };
