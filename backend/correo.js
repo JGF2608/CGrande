@@ -31,6 +31,7 @@ function getEmailConfiguration() {
   const port = Number(process.env.SMTP_PORT || 465);
   const secure = String(process.env.SMTP_SECURE ?? (port === 465)).toLowerCase() === 'true';
   const user = process.env.SMTP_USER || '';
+  const salesRecipient = process.env.EMAIL_SALES_RECIPIENT || user;
   return {
     enabled: areNotificationsEnabled(),
     host: process.env.SMTP_HOST || 'costagrande.com.pe',
@@ -38,8 +39,8 @@ function getEmailConfiguration() {
     secure,
     user,
     password: process.env.SMTP_PASSWORD || '',
-    recipient: process.env.EMAIL_TEST_RECIPIENT || '',
-    salesRecipient: process.env.EMAIL_SALES_RECIPIENT || user,
+    recipient: process.env.EMAIL_TEST_RECIPIENT || salesRecipient,
+    salesRecipient,
     from: process.env.SMTP_FROM || user,
   };
 }
@@ -60,9 +61,8 @@ function saveEmailConfiguration({ host, port, secure, user, password, recipient,
   if (salesRecipient && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(salesRecipient)) throw new Error('Ingresa un correo válido para ventas.');
   if (from && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) throw new Error('Ingresa un remitente válido.');
   if (!password && !process.env.SMTP_PASSWORD) throw new Error('Ingresa la contraseña de la cuenta de correo.');
-  if (!recipient && !process.env.EMAIL_TEST_RECIPIENT) throw new Error('Ingresa el correo que recibirá la prueba.');
   const smtpUser = user || process.env.SMTP_USER || 'ventas@costagrande.com.pe';
-  const values = { PORT: process.env.PORT || '3000', MAX_CONNECTIONS: process.env.MAX_CONNECTIONS || '500', APP_DATA_DIR: process.env.APP_DATA_DIR || '', APP_ENV_FILE: process.env.APP_ENV_FILE || '', EMAIL_NOTIFICATIONS_ENABLED: process.env.EMAIL_NOTIFICATIONS_ENABLED || 'false', SMTP_HOST: host || process.env.SMTP_HOST || 'costagrande.com.pe', SMTP_PORT: String(smtpPort), SMTP_SECURE: String(secure ?? process.env.SMTP_SECURE ?? 'true'), SMTP_USER: smtpUser, SMTP_PASSWORD: password || process.env.SMTP_PASSWORD, SMTP_FROM: from || process.env.SMTP_FROM || smtpUser, EMAIL_TEST_RECIPIENT: recipient || process.env.EMAIL_TEST_RECIPIENT, EMAIL_SALES_RECIPIENT: salesRecipient || process.env.EMAIL_SALES_RECIPIENT || smtpUser, GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || '', ANALYTICS_ENABLED: process.env.ANALYTICS_ENABLED || 'false' };
+  const values = { PORT: process.env.PORT || '3000', MAX_CONNECTIONS: process.env.MAX_CONNECTIONS || '500', APP_DATA_DIR: process.env.APP_DATA_DIR || '', APP_ENV_FILE: process.env.APP_ENV_FILE || '', EMAIL_NOTIFICATIONS_ENABLED: process.env.EMAIL_NOTIFICATIONS_ENABLED || 'false', SMTP_HOST: host || process.env.SMTP_HOST || 'costagrande.com.pe', SMTP_PORT: String(smtpPort), SMTP_SECURE: String(secure ?? process.env.SMTP_SECURE ?? 'true'), SMTP_USER: smtpUser, SMTP_PASSWORD: password || process.env.SMTP_PASSWORD, SMTP_FROM: from || process.env.SMTP_FROM || smtpUser, EMAIL_TEST_RECIPIENT: recipient || process.env.EMAIL_TEST_RECIPIENT || '', EMAIL_SALES_RECIPIENT: salesRecipient || process.env.EMAIL_SALES_RECIPIENT || smtpUser, GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || '', ANALYTICS_ENABLED: process.env.ANALYTICS_ENABLED || 'false' };
   const content = `# Archivo privado de configuración. No lo compartas ni lo subas a Internet.\nPORT=${values.PORT}\nMAX_CONNECTIONS=${values.MAX_CONNECTIONS}\nAPP_DATA_DIR=${values.APP_DATA_DIR}\nAPP_ENV_FILE=${values.APP_ENV_FILE}\n\nEMAIL_NOTIFICATIONS_ENABLED=${values.EMAIL_NOTIFICATIONS_ENABLED}\nSMTP_HOST=${values.SMTP_HOST}\nSMTP_PORT=${values.SMTP_PORT}\nSMTP_SECURE=${values.SMTP_SECURE}\nSMTP_USER=${values.SMTP_USER}\nSMTP_PASSWORD=${values.SMTP_PASSWORD}\nSMTP_FROM=${values.SMTP_FROM}\nEMAIL_TEST_RECIPIENT=${values.EMAIL_TEST_RECIPIENT}\nEMAIL_SALES_RECIPIENT=${values.EMAIL_SALES_RECIPIENT}\n\n# Clave de Google Maps. Restringirla al dominio de la web en Google Cloud.\nGOOGLE_MAPS_API_KEY=${values.GOOGLE_MAPS_API_KEY}\nANALYTICS_ENABLED=${values.ANALYTICS_ENABLED}\n`;
   const envPath = environmentFilePath(); fs.mkdirSync(path.dirname(envPath), { recursive: true }); fs.writeFileSync(envPath, content, { encoding: 'utf8', mode: 0o600 }); Object.assign(process.env, values); return getEmailConfigurationStatus();
 }

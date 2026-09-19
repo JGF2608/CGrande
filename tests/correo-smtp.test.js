@@ -1,7 +1,8 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-test('envía la prueba mediante la configuración SMTP', async () => {
+test('envía la prueba al correo de ventas cuando no existe un destinatario exclusivo', async () => {
+  delete process.env.EMAIL_TEST_RECIPIENT;
   Object.assign(process.env, {
     EMAIL_NOTIFICATIONS_ENABLED: 'true',
     SMTP_HOST: 'costagrande.com.pe',
@@ -10,7 +11,6 @@ test('envía la prueba mediante la configuración SMTP', async () => {
     SMTP_USER: 'ventas@costagrande.com.pe',
     SMTP_PASSWORD: 'secreto-de-prueba',
     SMTP_FROM: 'ventas@costagrande.com.pe',
-    EMAIL_TEST_RECIPIENT: 'prueba@ejemplo.com',
     EMAIL_SALES_RECIPIENT: 'ventas@costagrande.com.pe',
   });
 
@@ -46,7 +46,7 @@ test('envía la prueba mediante la configuración SMTP', async () => {
       secure: true,
       auth: { user: 'ventas@costagrande.com.pe', pass: 'secreto-de-prueba' },
     });
-    assert.equal(message.to, 'prueba@ejemplo.com');
+    assert.equal(message.to, 'ventas@costagrande.com.pe');
     assert.equal(message.from, 'ventas@costagrande.com.pe');
   } finally {
     nodemailer.createTransport = originalCreateTransport;
