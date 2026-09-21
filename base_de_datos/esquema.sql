@@ -46,6 +46,17 @@ CREATE TABLE IF NOT EXISTS plantillas_correo (
   fecha_actualizacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Organiza las secciones editables de la política de privacidad pública.
+CREATE TABLE IF NOT EXISTS secciones_politica_privacidad (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  titulo TEXT NOT NULL,
+  contenido TEXT NOT NULL,
+  orden INTEGER NOT NULL DEFAULT 0,
+  activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1)),
+  fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fecha_actualizacion TEXT
+);
+
 -- Guarda los indicadores adicionales que aparecen en la página pública.
 CREATE TABLE IF NOT EXISTS kpis_adicionales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
