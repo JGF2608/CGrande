@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS configuracion_empresa (
   firma_correo TEXT,
   sobre_nosotros_descripcion TEXT,
   sobre_nosotros_imagen TEXT,
+  proposito TEXT,
+  mision TEXT,
+  vision TEXT,
   imagen_popup_publicitario TEXT,
   clientes_historicos INTEGER NOT NULL DEFAULT 0 CHECK (clientes_historicos >= 0),
   fecha_actualizacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
