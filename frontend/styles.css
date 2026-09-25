@@ -310,7 +310,7 @@ footer { background:var(--forest-deep); }
 .hero { display:block; min-height:0; }
 .hero-visual { width:100%; height:min(38.415vw,760px); min-height:0; }
 .hero-visual .promo-carousel { min-height:inherit; }
-@media (max-width:700px) { .hero-visual { height:clamp(300px,76vw,480px); } }
+@media (max-width:700px) { .hero-visual { height:auto; min-height:0; aspect-ratio:var(--banner-aspect-ratio,16 / 9); } }
 
 /* CATEGORÍAS: permite recorrer las tarjetas del catálogo. */
 .catalog-navigation { min-height:18px; margin:0 0 20px; }
