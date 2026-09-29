@@ -12,3 +12,8 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Entregables y archivos auxiliares de Codex que no forman parte de la aplicación.
+.codex-finalizer/
+.codex-presentation-build/
+entregables/

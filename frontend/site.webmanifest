@@ -1,0 +1,18 @@
+{
+  "name": "Costa Grande | Tu aliado en el abastecimiento",
+  "short_name": "Costa Grande",
+  "description": "Costa Grande | tu aliado en el abastecimiento.",
+  "lang": "es-PE",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#193D84",
+  "theme_color": "#193D84",
+  "icons": [
+    {
+      "src": "/assets/favicon-costa-grande.png?v=20260928-1",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

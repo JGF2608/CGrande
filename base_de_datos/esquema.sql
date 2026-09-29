@@ -151,25 +151,24 @@ CREATE TABLE IF NOT EXISTS usuarios (
   id_cliente INTEGER,
   correo TEXT NOT NULL UNIQUE,
   contrasena_hash TEXT NOT NULL,
-  rol TEXT NOT NULL CHECK (rol IN ('administracion', 'cliente')),
+  rol TEXT NOT NULL CHECK (rol IN ('administracion', 'cliente', 'ventas')),
   requiere_cambio_contrasena INTEGER NOT NULL DEFAULT 0 CHECK (requiere_cambio_contrasena IN (0, 1)),
   activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1)),
   fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_cliente) REFERENCES clientes(id)
 );
 
--- Guarda las cuentas del personal de ventas.
-CREATE TABLE IF NOT EXISTS usuarios_ventas (
+-- Conserva únicamente los datos laborales específicos del personal de ventas.
+-- Las credenciales, el rol y el estado de acceso pertenecen a usuarios.
+CREATE TABLE IF NOT EXISTS perfiles_ventas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id_usuario INTEGER NOT NULL UNIQUE,
   nombre TEXT NOT NULL,
-  correo TEXT NOT NULL UNIQUE,
   codigo_usuario TEXT NOT NULL UNIQUE,
   telefono TEXT NOT NULL,
   numero_documento TEXT NOT NULL,
-  contrasena_hash TEXT NOT NULL,
-  requiere_cambio_contrasena INTEGER NOT NULL DEFAULT 1 CHECK (requiere_cambio_contrasena IN (0, 1)),
-  activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1)),
-  fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS cotizaciones (
@@ -251,7 +250,7 @@ CREATE TABLE IF NOT EXISTS postulaciones_laborales (
 -- Acelera las consultas por categoría, cliente, usuario y pedido.
 CREATE INDEX IF NOT EXISTS indice_productos_categoria ON productos(id_categoria);
 CREATE INDEX IF NOT EXISTS indice_cotizaciones_cliente ON cotizaciones(id_cliente);
-CREATE INDEX IF NOT EXISTS indice_usuarios_cliente ON usuarios(id_cliente);
-CREATE INDEX IF NOT EXISTS indice_usuarios_ventas_correo ON usuarios_ventas(correo);
+CREATE UNIQUE INDEX IF NOT EXISTS indice_usuarios_cliente_unico ON usuarios(id_cliente) WHERE id_cliente IS NOT NULL;
+CREATE INDEX IF NOT EXISTS indice_perfiles_ventas_usuario ON perfiles_ventas(id_usuario);
 CREATE INDEX IF NOT EXISTS indice_pedidos_cliente ON pedidos(id_cliente);
 CREATE INDEX IF NOT EXISTS indice_historial_pedido ON historial_estados_pedido(id_pedido);
