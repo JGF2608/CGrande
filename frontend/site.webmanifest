@@ -9,7 +9,7 @@
   "theme_color": "#193D84",
   "icons": [
     {
-      "src": "/assets/favicon-costa-grande.png?v=20260928-1",
+      "src": "/favicon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

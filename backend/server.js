@@ -238,6 +238,8 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/document-table.js') return serveFile(response, 'document-table.js', 'application/javascript; charset=utf-8');
     // Entrega al navegador el manifiesto que describe el nombre, los colores y el icono del sitio.
     if (request.method === 'GET' && url.pathname === '/site.webmanifest') return serveFile(response, 'site.webmanifest', 'application/manifest+json; charset=utf-8');
+    // Mantiene una URL estable para buscadores y una ruta tradicional de compatibilidad.
+    if (request.method === 'GET' && (url.pathname === '/favicon.png' || url.pathname === '/favicon.ico')) return serveFile(response, 'assets/favicon-costa-grande.png', 'image/png');
     if (request.method === 'GET' && url.pathname === '/assets/almacen-costa-grande.png') return serveFile(response, 'assets/almacen-costa-grande.png', 'image/png');
     if (request.method === 'GET' && url.pathname === '/assets/logo-negocios-costa-grande.png') return serveFile(response, 'assets/logo-negocios-costa-grande.png', 'image/png');
     if (request.method === 'GET' && url.pathname === '/assets/favicon-costa-grande.png') return serveFile(response, 'assets/favicon-costa-grande.png', 'image/png');
