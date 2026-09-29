@@ -252,4 +252,6 @@ server.headersTimeout = 15 * 1000;
 server.requestTimeout = 30 * 1000;
 server.keepAliveTimeout = 5 * 1000;
 server.maxConnections = Number(process.env.MAX_CONNECTIONS || 500);
-server.listen(port, () => console.log(`MVP listo en http://localhost:${port}`));
+// Escucha en todas las interfaces para que el proxy del alojamiento pueda alcanzar la aplicación.
+server.on('error', (error) => console.error(`No fue posible iniciar el servidor en el puerto ${port}:`, error));
+server.listen(port, '0.0.0.0', () => console.log(`MVP listo en http://0.0.0.0:${port}`));
