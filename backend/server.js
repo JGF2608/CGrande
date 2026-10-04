@@ -8,6 +8,7 @@ const { createAnalyticsService } = require('./analytics/analytics-service');
 const analytics = createAnalyticsService({ getBusinessSnapshot: database.getAnalyticsSnapshot });
 
 const port = Number(process.env.PORT || 3000);
+const host = process.env.HOST || '0.0.0.0';
 const frontendPath = path.join(__dirname, '..', 'frontend');
 const allowedStatuses = ['Pedido en curso', 'Pedido en camino', 'Pedido entregado', 'Cancelado'];
 const sessions = new Map();
@@ -254,4 +255,4 @@ server.keepAliveTimeout = 5 * 1000;
 server.maxConnections = Number(process.env.MAX_CONNECTIONS || 500);
 // Escucha en todas las interfaces para que el proxy del alojamiento pueda alcanzar la aplicación.
 server.on('error', (error) => console.error(`No fue posible iniciar el servidor en el puerto ${port}:`, error));
-server.listen(port, '0.0.0.0', () => console.log(`MVP listo en http://0.0.0.0:${port}`));
+server.listen(port, host, () => console.log(`MVP listo en http://${host}:${port}`));
