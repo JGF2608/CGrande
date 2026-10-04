@@ -8,6 +8,7 @@ const { createAnalyticsService } = require('./analytics/analytics-service');
 const analytics = createAnalyticsService({ getBusinessSnapshot: database.getAnalyticsSnapshot });
 
 const port = Number(process.env.PORT || 3000);
+// Permite fijar la interfaz de escucha en producción para que Apache sirva la app desde localhost.
 const host = process.env.HOST || '0.0.0.0';
 const frontendPath = path.join(__dirname, '..', 'frontend');
 const allowedStatuses = ['Pedido en curso', 'Pedido en camino', 'Pedido entregado', 'Cancelado'];
