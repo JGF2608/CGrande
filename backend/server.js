@@ -4,7 +4,9 @@ const path = require('path');
 const crypto = require('crypto');
 const database = require('../base_de_datos/base_de_datos');
 const email = require('./correo');
+const { createErpProductService } = require('./api-erp-products');
 const { createAnalyticsService } = require('./analytics/analytics-service');
+const erpProducts = createErpProductService();
 const analytics = createAnalyticsService({ getBusinessSnapshot: database.getAnalyticsSnapshot });
 
 const port = Number(process.env.PORT || 3000);
@@ -128,6 +130,21 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/my/quotes') { const session = requireRole(request, response, 'cliente'); if (!session) return; const client = database.getClientById(session.clientId); const quote = await readBody(request); const quoteData = { ...quote, name: client.name, email: client.email, phone: client.phone, message: quote.message || '' }; const error = validateQuoteContact(quoteData); if (error) return sendJson(response, 400, { message: error }); const createdQuote = database.createQuote(quoteData); email.notifyNewQuote(createdQuote); return sendJson(response, 201, { message: 'Cotización enviada.' }); }
     if (request.method === 'PATCH' && url.pathname.startsWith('/api/my/quotes/')) { const session = requireRole(request, response, 'cliente'); if (!session) return; const quote = database.updateOwnQuote(Number(url.pathname.split('/').pop()), session.clientId, await readBody(request)); return quote ? sendJson(response, 200, quote) : sendJson(response, 400, { message: 'Solo se pueden editar cotizaciones pendientes.' }); }
     if (request.method === 'GET' && url.pathname === '/api/my/orders') { const session = requireRole(request, response, 'cliente'); return session && sendJson(response, 200, database.listOrdersByClient(session.clientId)); }
+    // Esta ruta de prueba exige administración y mantiene separada la consulta al ERP del catálogo público local.
+    if (request.method === 'GET' && url.pathname === '/api/erp/products') {
+      if (!requireRole(request, response, 'administracion')) return;
+      try {
+        return sendJson(response, 200, await erpProducts.listProducts());
+      } catch (error) {
+        // Registra el detalle solo en el servidor; no expone errores internos ni datos de conexión al cliente.
+        console.error('No se pudieron consultar los productos del ERP:', error.message);
+        return sendJson(response, error.statusCode || 503, {
+          message: error.code === 'ERP_CONFIGURATION'
+            ? error.message
+            : 'No fue posible consultar los productos del ERP.',
+        });
+      }
+    }
     // Entrega el catálogo público y las imágenes guardadas.
     if (request.method === 'GET' && url.pathname === '/api/products') return sendJson(response, 200, database.listProducts());
     if (request.method === 'GET' && url.pathname === '/api/categories') return sendJson(response, 200, database.listCategories());
