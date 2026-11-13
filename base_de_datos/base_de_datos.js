@@ -93,6 +93,29 @@ function migrateNormalizedUsers() {
 
 migrateNormalizedUsers();
 database.exec(schemaSql);
+if (!tableColumns('registro_auditoria_administrativa').has('nombre_entidad')) database.exec("ALTER TABLE registro_auditoria_administrativa ADD COLUMN nombre_entidad TEXT NOT NULL DEFAULT ''");
+
+function getAuditEntityName(entity, entityId) {
+  const nameQueries = {
+    cliente: 'SELECT nombre_contacto AS name FROM clientes WHERE id = ?',
+    usuario_ventas: 'SELECT nombre AS name FROM perfiles_ventas WHERE id_usuario = ?',
+    producto: 'SELECT nombre AS name FROM productos WHERE id = ?',
+    categoria: 'SELECT nombre AS name FROM categorias_producto WHERE id = ?',
+  };
+  const query = nameQueries[entity];
+  if (!query) throw new Error('No se pudo identificar el tipo de registro auditado.');
+  return database.prepare(query).get(Number(entityId))?.name || `${entity} #${entityId}`;
+}
+function recordAuditEvent(actor, entity, entityId, action, fields = []) {
+  if (!actor) return;
+  if (!Number.isInteger(Number(actor.id)) || !actor.email || !actor.role) throw new Error('No se pudo identificar al responsable del cambio.');
+  const entityName = getAuditEntityName(entity, entityId);
+  database.prepare('INSERT INTO registro_auditoria_administrativa (entidad, id_entidad, nombre_entidad, accion, id_actor, correo_actor, rol_actor, campos_modificados) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(entity, Number(entityId), entityName, action, Number(actor.id), actor.email, actor.role, JSON.stringify([...new Set(fields)]));
+}
+function listAuditEvents(limit = 200) {
+  const maximum = Math.min(500, Math.max(1, Number(limit) || 200));
+  return database.prepare('SELECT id, entidad AS entity, id_entidad AS entityId, nombre_entidad AS entityName, accion AS action, id_actor AS actorId, correo_actor AS actorEmail, rol_actor AS actorRole, campos_modificados AS changedFields, fecha AS createdAt FROM registro_auditoria_administrativa ORDER BY id DESC LIMIT ?').all(maximum).map((event) => ({ ...event, entityName: event.entityName || getAuditEntityName(event.entity, event.entityId), changedFields: JSON.parse(event.changedFields) }));
+}
 
 // Mantiene el correo de acceso del cliente sincronizado con su ficha comercial.
 function synchronizeClientAccountEmails() {
@@ -142,10 +165,10 @@ function replaceMediaImage(currentValue, nextValue, group) { const stored = save
 function migrateLegacyImages() { const targets = [['banners_publicitarios', 'imagen_url', 'banners'], ['socios_comerciales', 'imagen_url', 'partners'], ['categorias_producto', 'imagen_url', 'categories'], ['productos', 'imagen_url', 'products'], ['hitos_historia', 'imagen_url', 'timeline'], ['configuracion_empresa', 'sobre_nosotros_imagen', 'about'], ['configuracion_empresa', 'imagen_popup_publicitario', 'popups']]; const pending = targets.map(([table, column, group]) => ({ table, column, group, rows: database.prepare(`SELECT id, ${column} AS image FROM ${table} WHERE ${column} LIKE 'data:image/%'`).all() })).filter((target) => target.rows.length); if (!pending.length) return; const backupPath = path.join(dataDirectory, 'mvp_catalogo.pre-media-migration.db'); if (!fs.existsSync(backupPath)) fs.copyFileSync(databasePath, backupPath); pending.forEach(({ table, column, group, rows }) => { const update = database.prepare(`UPDATE ${table} SET ${column} = ? WHERE id = ?`); rows.forEach((row) => update.run(saveMediaImage(row.image, group), row.id)); }); database.exec('VACUUM'); }
 
 // Genera el siguiente código visible para cotizaciones o pedidos.
-function nextCode(prefix, table) {
-  const rows = database.prepare(`SELECT codigo FROM ${table}`).all();
+function nextCode(prefix, table, digits = 4) {
+  const rows = database.prepare(`SELECT codigo FROM ${table}`).all().filter((row) => String(row.codigo).startsWith(`${prefix}-`));
   const highest = rows.reduce((max, row) => Math.max(max, Number(String(row.codigo).split('-')[1]) || 0), 0);
-  return `${prefix}-${String(highest + 1).padStart(4, '0')}`;
+  return `${prefix}-${String(highest + 1).padStart(digits, '0')}`;
 }
 
 function getOrCreateCategory(name) {
@@ -197,13 +220,31 @@ function updateExperienceKpis(data) { database.prepare('INSERT INTO configuracio
 // Guarda la firma común de las plantillas de correo.
 function updateEmailSignature(signature) { database.prepare("INSERT INTO configuracion_empresa (id, firma_correo, fecha_actualizacion) VALUES (1, ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET firma_correo = excluded.firma_correo, fecha_actualizacion = CURRENT_TIMESTAMP").run(signature || null); return getCompanySettings().emailSignature || ''; }
 const emailTemplateDefaults = {
-  quote_sales: { subject: '[{{quote_code}}] Nueva cotización recibida', body: 'Nueva cotización {{quote_code}}\n\nCliente: {{customer_name}}\nCorreo: {{customer_email}}\nTeléfono: {{customer_phone}}\nProducto: {{product}}\nMensaje: {{message}}\n\nIngresa al panel de administración para atenderla.\n\n{{company_signature}}' },
-  quote_customer: { subject: 'Recibimos tu cotización {{quote_code}}', body: 'Hola, {{customer_name}}.\n\nRecibimos tu solicitud de cotización {{quote_code}} para {{product}}.\nEl equipo comercial se comunicará contigo pronto.\n\n{{company_signature}}' },
+  quote_sales: { subject: '[{{quote_code}}] Nueva Solicitud de Pedido recibida', body: 'Nueva Solicitud de Pedido {{quote_code}}\n\nCliente: {{customer_name}}\nCorreo: {{customer_email}}\nTeléfono: {{customer_phone}}\nProducto: {{product}}\nMensaje: {{message}}\n\nIngresa al panel de administración para atenderla.\n\n{{company_signature}}' },
+  quote_customer: { subject: 'Recibimos tu Solicitud de Pedido {{quote_code}}', body: 'Hola, {{customer_name}}.\n\nRecibimos tu Solicitud de Pedido {{quote_code}} para {{product}}.\nEl equipo comercial se comunicará contigo pronto.\n\n{{company_signature}}' },
   order_created: { subject: 'Pedido {{order_code}} confirmado', body: 'Hola, {{customer_name}}.\n\nTu pedido {{order_code}} fue creado.\nProducto: {{product}}\nCantidad: {{quantity}} {{unit}}\nFecha estimada de entrega: {{estimated_delivery_date}}\n\nPuedes revisar el seguimiento desde tu cuenta.\n\n{{company_signature}}' },
   order_in_transit: { subject: 'Tu pedido {{order_code}} está en camino', body: 'Hola, {{customer_name}}.\n\nEl pedido {{order_code}} ya se encuentra en camino.\nFecha estimada de entrega: {{estimated_delivery_date}}\n\nPuedes revisar el seguimiento desde tu cuenta.\n\n{{company_signature}}' },
 };
 // Crea las plantillas de correo que falten.
-function initializeEmailTemplates() { const insert = database.prepare('INSERT OR IGNORE INTO plantillas_correo (tipo, asunto, cuerpo) VALUES (?, ?, ?)'); Object.entries(emailTemplateDefaults).forEach(([type, template]) => insert.run(type, template.subject, template.body)); }
+function initializeEmailTemplates() {
+  const insert = database.prepare('INSERT OR IGNORE INTO plantillas_correo (tipo, asunto, cuerpo) VALUES (?, ?, ?)');
+  const migrate = database.prepare('UPDATE plantillas_correo SET asunto = ?, cuerpo = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE tipo = ? AND asunto = ? AND cuerpo = ?');
+  const previousDefaults = {
+    quote_sales: {
+      subject: emailTemplateDefaults.quote_sales.subject.replace('Nueva Solicitud de Pedido', 'Nueva cotizaci\u00f3n'),
+      body: emailTemplateDefaults.quote_sales.body.replace('Nueva Solicitud de Pedido', 'Nueva cotizaci\u00f3n')
+    },
+    quote_customer: {
+      subject: emailTemplateDefaults.quote_customer.subject.replace('Solicitud de Pedido', 'cotizaci\u00f3n'),
+      body: emailTemplateDefaults.quote_customer.body.replace('Solicitud de Pedido', 'solicitud de cotizaci\u00f3n')
+    }
+  };
+  Object.entries(emailTemplateDefaults).forEach(([type, template]) => {
+    insert.run(type, template.subject, template.body);
+    const previous = previousDefaults[type];
+    if (previous) migrate.run(template.subject, template.body, type, previous.subject, previous.body);
+  });
+}
 function listEmailTemplates() { return database.prepare('SELECT tipo AS type, asunto AS subject, cuerpo AS body FROM plantillas_correo ORDER BY tipo').all(); }
 function getEmailTemplate(type) { return database.prepare('SELECT tipo AS type, asunto AS subject, cuerpo AS body FROM plantillas_correo WHERE tipo = ?').get(type) || null; }
 function updateEmailTemplate(type, data) { database.prepare("INSERT INTO plantillas_correo (tipo, asunto, cuerpo, fecha_actualizacion) VALUES (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT(tipo) DO UPDATE SET asunto = excluded.asunto, cuerpo = excluded.cuerpo, fecha_actualizacion = CURRENT_TIMESTAMP").run(type, data.subject, data.body); return getEmailTemplate(type); }
@@ -259,13 +300,43 @@ function verifyPassword(password, stored) { const [salt, storedHash] = String(st
 const clientFields = 'id, nombre_contacto AS name, correo AS email, telefono AS phone, razon_social AS company, tipo_documento AS documentType, numero_documento AS documentNumber, direccion AS address, departamento AS department, provincia AS province, distrito AS district';
 // Consulta los clientes registrados para el panel administrativo.
 function listClients() { return database.prepare(`SELECT ${clientFields}, EXISTS (SELECT 1 FROM usuarios u WHERE u.id_cliente = clientes.id AND u.rol = 'cliente' AND u.activo = 1) AS hasAccount FROM clientes WHERE activo = 1 ORDER BY id DESC`).all().map((client) => ({ ...client, hasAccount: Boolean(client.hasAccount) })); }
-function createClient(data) { database.exec('BEGIN'); try { const id = Number(database.prepare('INSERT INTO clientes (nombre_contacto, correo, telefono, razon_social, tipo_documento, numero_documento, direccion, departamento, provincia, distrito) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(data.name, data.email, data.phone || null, data.company || null, data.documentType || null, data.documentNumber || null, data.address || null, data.department || null, data.province || null, data.district || null).lastInsertRowid); database.prepare('INSERT INTO usuarios (id_cliente, correo, contrasena_hash, rol, requiere_cambio_contrasena) VALUES (?, ?, ?, ?, 1)').run(id, data.email, hashPassword(data.temporaryPassword), 'cliente'); database.exec('COMMIT'); return listClients().find((client) => client.id === id); } catch (error) { database.exec('ROLLBACK'); throw error; } }
-function updateClient(id, data) {
-  const client = database.prepare('SELECT id FROM clientes WHERE id = ? AND activo = 1').get(id);
+function listInactiveClients() { return database.prepare(`SELECT ${clientFields}, EXISTS (SELECT 1 FROM usuarios u WHERE u.id_cliente = clientes.id AND u.rol = 'cliente') AS hasAccount FROM clientes WHERE activo = 0 ORDER BY id DESC`).all().map((client) => ({ ...client, hasAccount: Boolean(client.hasAccount) })); }
+function createClient(data, actor) {
+  database.exec('BEGIN');
+  try {
+    const existing = database.prepare('SELECT id, activo FROM clientes WHERE lower(correo) = lower(?)').get(data.email);
+    if (existing?.activo) throw new Error('Ese correo ya pertenece a un cliente activo.');
+    const account = existing && database.prepare("SELECT id FROM usuarios WHERE id_cliente = ? AND rol = 'cliente'").get(existing.id);
+    if (database.prepare('SELECT id FROM usuarios WHERE lower(correo) = lower(?) AND id <> ?').get(data.email, account?.id ?? -1)) throw new Error('Ese correo ya pertenece a otra cuenta.');
+    let id;
+    if (existing) {
+      id = existing.id;
+      database.prepare('UPDATE clientes SET nombre_contacto = ?, correo = ?, telefono = ?, razon_social = ?, tipo_documento = ?, numero_documento = ?, direccion = ?, departamento = ?, provincia = ?, distrito = ?, activo = 1 WHERE id = ?').run(data.name, data.email, data.phone || null, data.company || null, data.documentType || null, data.documentNumber || null, data.address || null, data.department || null, data.province || null, data.district || null, id);
+      if (account) database.prepare('UPDATE usuarios SET correo = ?, contrasena_hash = ?, requiere_cambio_contrasena = 1, activo = 1 WHERE id = ?').run(data.email, hashPassword(data.temporaryPassword), account.id);
+      else database.prepare("INSERT INTO usuarios (id_cliente, correo, contrasena_hash, rol, requiere_cambio_contrasena) VALUES (?, ?, ?, 'cliente', 1)").run(id, data.email, hashPassword(data.temporaryPassword));
+    } else {
+      id = Number(database.prepare('INSERT INTO clientes (nombre_contacto, correo, telefono, razon_social, tipo_documento, numero_documento, direccion, departamento, provincia, distrito) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(data.name, data.email, data.phone || null, data.company || null, data.documentType || null, data.documentNumber || null, data.address || null, data.department || null, data.province || null, data.district || null).lastInsertRowid);
+      database.prepare("INSERT INTO usuarios (id_cliente, correo, contrasena_hash, rol, requiere_cambio_contrasena) VALUES (?, ?, ?, 'cliente', 1)").run(id, data.email, hashPassword(data.temporaryPassword));
+    }
+    recordAuditEvent(actor, 'cliente', id, existing ? 'reactivado' : 'creado', ['name', 'email', 'phone', 'company', 'documentType', 'documentNumber', 'address', 'department', 'province', 'district', ...(existing ? ['active'] : []), 'temporaryPasswordSet']);
+    database.exec('COMMIT');
+    const client = listClients().find((item) => item.id === id);
+    return existing ? { ...client, reactivated: true } : client;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
+function updateClient(id, data, actor) {
+  const client = database.prepare('SELECT id, nombre_contacto AS name, correo AS email, telefono AS phone, razon_social AS company, tipo_documento AS documentType, numero_documento AS documentNumber, direccion AS address, departamento AS department, provincia AS province, distrito AS district FROM clientes WHERE id = ? AND activo = 1').get(id);
   if (!client) return null;
   const account = database.prepare("SELECT id FROM usuarios WHERE id_cliente = ? AND rol = 'cliente'").get(id);
   if (database.prepare('SELECT id FROM usuarios WHERE lower(correo) = lower(?) AND id <> ?').get(data.email, account?.id ?? -1)) throw new Error('Ese correo ya pertenece a otra cuenta.');
   const passwordReset = typeof data.temporaryPassword === 'string' && data.temporaryPassword.length > 0;
+  const next = { name: data.name, email: data.email, phone: data.phone || null, company: data.company || null, documentType: data.documentType || null, documentNumber: data.documentNumber || null, address: data.address || null, department: data.department || null, province: data.province || null, district: data.district || null };
+  const changedFields = Object.keys(next).filter((field) => String(client[field] ?? '') !== String(next[field] ?? ''));
+  if (passwordReset) changedFields.push('temporaryPasswordReset');
+  if (!account && passwordReset) changedFields.push('accountCreated');
   database.exec('BEGIN');
   try {
     database.prepare('UPDATE clientes SET nombre_contacto = ?, correo = ?, telefono = ?, razon_social = ?, tipo_documento = ?, numero_documento = ?, direccion = ?, departamento = ?, provincia = ?, distrito = ? WHERE id = ?').run(data.name, data.email, data.phone || null, data.company || null, data.documentType || null, data.documentNumber || null, data.address || null, data.department || null, data.province || null, data.district || null, id);
@@ -275,6 +346,7 @@ function updateClient(id, data) {
     } else if (passwordReset) {
       database.prepare("INSERT INTO usuarios (id_cliente, correo, contrasena_hash, rol, requiere_cambio_contrasena) VALUES (?, ?, ?, 'cliente', 1)").run(id, data.email, hashPassword(data.temporaryPassword));
     }
+    if (changedFields.length) recordAuditEvent(actor, 'cliente', id, 'modificado', changedFields);
     database.exec('COMMIT');
   } catch (error) {
     database.exec('ROLLBACK');
@@ -282,33 +354,77 @@ function updateClient(id, data) {
   }
   return listClients().find((item) => item.id === Number(id));
 }
-function deleteClient(id) { database.exec('BEGIN'); try { const result = database.prepare('UPDATE clientes SET activo = 0 WHERE id = ? AND activo = 1').run(id); if (result.changes) { database.prepare("UPDATE usuarios SET activo = 0 WHERE id_cliente = ? AND rol = 'cliente'").run(id); database.prepare("INSERT INTO configuracion_empresa (id, clientes_historicos, fecha_actualizacion) VALUES (1, 1, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET clientes_historicos = clientes_historicos + 1, fecha_actualizacion = CURRENT_TIMESTAMP").run(); } database.exec('COMMIT'); return result.changes > 0; } catch (error) { database.exec('ROLLBACK'); throw error; } }
-function nextSalesUserCode() { const rows = database.prepare('SELECT codigo_usuario AS code FROM perfiles_ventas').all(); const highest = rows.reduce((max, row) => Math.max(max, Number(String(row.code).match(/^VEN-(\d+)$/i)?.[1]) || 0), 0); return `VEN-${String(highest + 1).padStart(4, '0')}`; }
-// Registra un usuario de ventas con sus datos de acceso.
-function createSalesUser(data) {
-  if (database.prepare('SELECT id FROM usuarios WHERE correo = ?').get(data.email)) throw new Error('Ese correo ya pertenece a otra cuenta.');
+function deleteClient(id, actor) { database.exec('BEGIN'); try { const result = database.prepare('UPDATE clientes SET activo = 0 WHERE id = ? AND activo = 1').run(id); if (result.changes) { database.prepare("UPDATE usuarios SET activo = 0 WHERE id_cliente = ? AND rol = 'cliente'").run(id); database.prepare("INSERT INTO configuracion_empresa (id, clientes_historicos, fecha_actualizacion) VALUES (1, 1, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET clientes_historicos = clientes_historicos + 1, fecha_actualizacion = CURRENT_TIMESTAMP").run(); recordAuditEvent(actor, 'cliente', id, 'desactivado', ['active', 'accountAccess']); } database.exec('COMMIT'); return result.changes > 0; } catch (error) { database.exec('ROLLBACK'); throw error; } }
+function reactivateClient(id, actor) {
   database.exec('BEGIN');
   try {
-    const userId = Number(database.prepare("INSERT INTO usuarios (correo, contrasena_hash, rol, requiere_cambio_contrasena) VALUES (?, ?, 'ventas', 1)").run(data.email, hashPassword(data.temporaryPassword)).lastInsertRowid);
-    database.prepare('INSERT INTO perfiles_ventas (id_usuario, nombre, codigo_usuario, telefono, numero_documento) VALUES (?, ?, ?, ?, ?)').run(userId, data.name, nextSalesUserCode(), data.phone, data.documentNumber);
+    const result = database.prepare('UPDATE clientes SET activo = 1 WHERE id = ? AND activo = 0').run(id);
+    if (!result.changes) { database.exec('COMMIT'); return null; }
+    database.prepare("UPDATE usuarios SET activo = 1 WHERE id_cliente = ? AND rol = 'cliente'").run(id);
+    recordAuditEvent(actor, 'cliente', id, 'reactivado', ['active', 'accountAccess']);
     database.exec('COMMIT');
-    return listSalesUsers().find((user) => user.id === userId);
+    return listClients().find((client) => client.id === Number(id)) || null;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
+function nextSalesUserCode() { const rows = database.prepare('SELECT codigo_usuario AS code FROM perfiles_ventas').all(); const highest = rows.reduce((max, row) => Math.max(max, Number(String(row.code).match(/^VEN-(\d+)$/i)?.[1]) || 0), 0); return `VEN-${String(highest + 1).padStart(4, '0')}`; }
+// Registra un usuario de ventas con sus datos de acceso.
+function createSalesUser(data, actor) {
+  database.exec('BEGIN');
+  try {
+    const existing = database.prepare('SELECT id, rol, activo FROM usuarios WHERE lower(correo) = lower(?)').get(data.email);
+    if (existing && (existing.rol !== 'ventas' || existing.activo)) throw new Error('Ese correo ya pertenece a otra cuenta.');
+    let userId;
+    if (existing) {
+      userId = existing.id;
+      database.prepare("UPDATE usuarios SET correo = ?, contrasena_hash = ?, requiere_cambio_contrasena = 1, activo = 1 WHERE id = ? AND rol = 'ventas'").run(data.email, hashPassword(data.temporaryPassword), userId);
+      const profile = database.prepare('SELECT id FROM perfiles_ventas WHERE id_usuario = ?').get(userId);
+      if (profile) database.prepare('UPDATE perfiles_ventas SET nombre = ?, telefono = ?, numero_documento = ? WHERE id_usuario = ?').run(data.name, data.phone, data.documentNumber, userId);
+      else database.prepare('INSERT INTO perfiles_ventas (id_usuario, nombre, codigo_usuario, telefono, numero_documento) VALUES (?, ?, ?, ?, ?)').run(userId, data.name, nextSalesUserCode(), data.phone, data.documentNumber);
+    } else {
+      userId = Number(database.prepare("INSERT INTO usuarios (correo, contrasena_hash, rol, requiere_cambio_contrasena) VALUES (?, ?, 'ventas', 1)").run(data.email, hashPassword(data.temporaryPassword)).lastInsertRowid);
+      database.prepare('INSERT INTO perfiles_ventas (id_usuario, nombre, codigo_usuario, telefono, numero_documento) VALUES (?, ?, ?, ?, ?)').run(userId, data.name, nextSalesUserCode(), data.phone, data.documentNumber);
+    }
+    recordAuditEvent(actor, 'usuario_ventas', userId, existing ? 'reactivado' : 'creado', ['name', 'email', 'phone', 'documentNumber', ...(existing ? ['active'] : []), 'temporaryPasswordSet']);
+    database.exec('COMMIT');
+    const user = listSalesUsers().find((item) => item.id === userId);
+    return existing ? { ...user, reactivated: true } : user;
   } catch (error) {
     database.exec('ROLLBACK');
     throw error;
   }
 }
 function listSalesUsers() { return database.prepare("SELECT u.id, pv.nombre AS name, u.correo AS email, pv.codigo_usuario AS userCode, pv.telefono AS phone, pv.numero_documento AS documentNumber, u.fecha_creacion AS createdAt FROM usuarios u JOIN perfiles_ventas pv ON pv.id_usuario = u.id WHERE u.rol = 'ventas' AND u.activo = 1 ORDER BY u.id DESC").all(); }
-function updateSalesUser(id, data) {
+function listInactiveSalesUsers() { return database.prepare("SELECT u.id, pv.nombre AS name, u.correo AS email, pv.codigo_usuario AS userCode, pv.telefono AS phone, pv.numero_documento AS documentNumber, u.fecha_creacion AS createdAt FROM usuarios u JOIN perfiles_ventas pv ON pv.id_usuario = u.id WHERE u.rol = 'ventas' AND u.activo = 0 ORDER BY u.id DESC").all(); }
+function reactivateSalesUser(id, actor) {
+  database.exec('BEGIN');
+  try {
+    const result = database.prepare("UPDATE usuarios SET activo = 1 WHERE id = ? AND rol = 'ventas' AND activo = 0").run(id);
+    if (!result.changes) { database.exec('COMMIT'); return null; }
+    recordAuditEvent(actor, 'usuario_ventas', id, 'reactivado', ['active']);
+    database.exec('COMMIT');
+    return listSalesUsers().find((user) => user.id === Number(id)) || null;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
+function updateSalesUser(id, data, actor) {
   if (database.prepare('SELECT id FROM usuarios WHERE correo = ? AND id <> ?').get(data.email, id)) throw new Error('Ese correo ya pertenece a otra cuenta.');
   const passwordReset = typeof data.temporaryPassword === 'string' && data.temporaryPassword.length > 0;
-  const user = database.prepare("SELECT id FROM usuarios WHERE id = ? AND rol = 'ventas' AND activo = 1").get(id);
+  const user = database.prepare("SELECT u.id, u.correo AS email, pv.nombre AS name, pv.telefono AS phone, pv.numero_documento AS documentNumber FROM usuarios u LEFT JOIN perfiles_ventas pv ON pv.id_usuario = u.id WHERE u.id = ? AND u.rol = 'ventas' AND u.activo = 1").get(id);
   if (!user) return null;
+  const next = { name: data.name, email: data.email, phone: data.phone, documentNumber: data.documentNumber };
+  const changedFields = Object.keys(next).filter((field) => String(user[field] ?? '') !== String(next[field] ?? ''));
+  if (passwordReset) changedFields.push('temporaryPasswordReset');
   database.exec('BEGIN');
   try {
     if (passwordReset) database.prepare('UPDATE usuarios SET correo = ?, contrasena_hash = ?, requiere_cambio_contrasena = 1 WHERE id = ?').run(data.email, hashPassword(data.temporaryPassword), id);
     else database.prepare('UPDATE usuarios SET correo = ? WHERE id = ?').run(data.email, id);
     database.prepare('UPDATE perfiles_ventas SET nombre = ?, telefono = ?, numero_documento = ? WHERE id_usuario = ?').run(data.name, data.phone, data.documentNumber, id);
+    if (changedFields.length) recordAuditEvent(actor, 'usuario_ventas', id, 'modificado', changedFields);
     database.exec('COMMIT');
   } catch (error) {
     database.exec('ROLLBACK');
@@ -316,12 +432,37 @@ function updateSalesUser(id, data) {
   }
   return listSalesUsers().find((salesUser) => salesUser.id === Number(id));
 }
-function deleteSalesUser(id) { return database.prepare("UPDATE usuarios SET activo = 0 WHERE id = ? AND rol = 'ventas' AND activo = 1").run(id).changes > 0; }
+function deleteSalesUser(id, actor) {
+  database.exec('BEGIN');
+  try {
+    const result = database.prepare("UPDATE usuarios SET activo = 0 WHERE id = ? AND rol = 'ventas' AND activo = 1").run(id);
+    if (result.changes) recordAuditEvent(actor, 'usuario_ventas', id, 'desactivado', ['active']);
+    database.exec('COMMIT');
+    return result.changes > 0;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
 // Comprueba las credenciales y obtiene el usuario correspondiente.
 function authenticate(email, password) { const normalizedEmail = String(email || '').trim(); const user = database.prepare('SELECT id, id_cliente AS clientId, correo AS email, contrasena_hash AS passwordHash, rol AS role, requiere_cambio_contrasena AS mustChangePassword FROM usuarios WHERE lower(correo) = lower(?) AND activo = 1').get(normalizedEmail); if (!user || !verifyPassword(password, user.passwordHash)) return null; return { id: user.id, clientId: user.clientId, email: user.email, role: user.role, mustChangePassword: Boolean(user.mustChangePassword) }; }
-function changeOwnPassword(userId, role, password) { return database.prepare('UPDATE usuarios SET contrasena_hash = ?, requiere_cambio_contrasena = 0 WHERE id = ? AND rol = ? AND activo = 1').run(hashPassword(password), userId, role).changes > 0; }
+function changeOwnPassword(userId, role, password, actor) {
+  database.exec('BEGIN');
+  try {
+    const result = database.prepare('UPDATE usuarios SET contrasena_hash = ?, requiere_cambio_contrasena = 0 WHERE id = ? AND rol = ? AND activo = 1').run(hashPassword(password), userId, role);
+    if (result.changes) {
+      const clientId = role === 'cliente' ? database.prepare('SELECT id_cliente AS id FROM usuarios WHERE id = ?').get(userId)?.id : null;
+      recordAuditEvent(actor, role === 'ventas' ? 'usuario_ventas' : 'cliente', role === 'ventas' ? userId : clientId, 'modificado', ['passwordChanged']);
+    }
+    database.exec('COMMIT');
+    return result.changes > 0;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
 function getClientById(id) { return database.prepare(`SELECT ${clientFields} FROM clientes WHERE id = ? AND activo = 1`).get(id); }
-function updateOwnClient(id, data) { const current = getClientById(id); return current && updateClient(id, { ...current, ...data }); }
+function updateOwnClient(id, data, actor) { const current = getClientById(id); return current && updateClient(id, { ...current, ...data }, actor); }
 function listQuoteItems(quoteId) { return database.prepare('SELECT dc.id, dc.descripcion_producto AS product, dc.cantidad AS quantity, dc.precio_unitario AS price, COALESCE(um.abreviatura, \'\') AS unit FROM detalle_cotizaciones dc LEFT JOIN unidades_medida um ON um.id = dc.id_unidad_medida WHERE dc.id_cotizacion = ? ORDER BY dc.id').all(quoteId); }
 function listOrderItems(orderId) { return database.prepare('SELECT dp.id, dp.descripcion_producto AS product, dp.cantidad AS quantity, dp.precio_unitario AS price, COALESCE(um.abreviatura, \'\') AS unit FROM detalle_pedidos dp LEFT JOIN unidades_medida um ON um.id = dp.id_unidad_medida WHERE dp.id_pedido = ? ORDER BY dp.id').all(orderId); }
 // Valida los productos y cantidades de cotizaciones o pedidos.
@@ -361,20 +502,159 @@ function removeDefaultBanners() { database.prepare("DELETE FROM banners_publicit
 function initializeAttentionPoints() { if (database.prepare('SELECT id FROM puntos_atencion LIMIT 1').get()) return; const insert = database.prepare('INSERT INTO puntos_atencion (nombre, direccion, horario_atencion) VALUES (?, ?, ?)'); [['Tarapoto Tienda', 'Jr. Cabo Alberto Leveau 264, Tarapoto'], ['Tarapoto Tienda', 'Jr. Santa Rosa 481, Tarapoto'], ['Tarapoto Oficina Principal', 'Av. Vía de Evitamiento 1846, Tarapoto'], ['Tarapoto Tienda', 'Av. Illo 601, Tarapoto'], ['Tarapoto Almacén principal', 'Av. Vía de Evitamiento 1590, Tarapoto'], ['Yurimaguas Tienda', 'Jr. José Riera 136, Yurimaguas'], ['Yurimaguas Tienda', 'Calle Monseñor Atanasio Jáuregui 528, Yurimaguas'], ['Yurimaguas Tienda', 'Calle Teniente César López 627, Yurimaguas']].forEach((item) => insert.run(...item, '7am a 6pm')); }
 
 function listCategories() { return database.prepare('SELECT c.id, c.nombre AS name, c.descripcion AS description, c.id_categoria_padre AS parentId, p.nombre AS parentName, c.imagen_url AS image FROM categorias_producto c LEFT JOIN categorias_producto p ON p.id = c.id_categoria_padre WHERE c.activo = 1 ORDER BY COALESCE(c.id_categoria_padre, c.id), c.nombre').all().map((item) => ({ ...item, image: publicImageUrl(item.image) })); }
+function listInactiveCategories() { return database.prepare('SELECT c.id, c.nombre AS name, c.descripcion AS description, c.id_categoria_padre AS parentId, p.nombre AS parentName, c.imagen_url AS image FROM categorias_producto c LEFT JOIN categorias_producto p ON p.id = c.id_categoria_padre WHERE c.activo = 0 ORDER BY c.nombre').all().map((item) => ({ ...item, image: publicImageUrl(item.image) })); }
 // Resume las categorías y productos del catálogo público.
 function listCatalogSummary() { return { categories: database.prepare("SELECT c.id, c.nombre AS name, c.descripcion AS description, CASE WHEN c.imagen_url IS NOT NULL AND c.imagen_url <> '' THEN 1 ELSE 0 END AS hasImage, (SELECT COUNT(*) FROM productos p WHERE p.id_categoria = c.id AND p.activo = 1) AS productCount FROM categorias_producto c WHERE c.activo = 1 ORDER BY c.nombre").all(), products: database.prepare("SELECT p.id, p.nombre AS name, p.id_categoria AS categoryId, COALESCE(um.abreviatura, 'UND') AS unit FROM productos p LEFT JOIN unidades_medida um ON um.id = p.id_unidad_medida WHERE p.activo = 1 ORDER BY p.id").all() }; }
 function listCatalogProducts(categoryId) { return listProducts().filter((product) => Number(product.categoryId) === Number(categoryId)); }
 function getCategoryImage(categoryId) { return database.prepare('SELECT imagen_url AS image FROM categorias_producto WHERE id = ? AND activo = 1').get(Number(categoryId))?.image || null; }
 function getCategory(categoryId) { return database.prepare('SELECT id FROM categorias_producto WHERE id = ? AND activo = 1').get(Number(categoryId)); }
 // Registra una categoría nueva del catálogo.
-function createCategory(data) { const id = Number(database.prepare('INSERT INTO categorias_producto (nombre, descripcion, id_categoria_padre, imagen_url) VALUES (?, ?, NULL, ?)').run(data.name, data.description || null, saveMediaImage(data.image, 'categories')).lastInsertRowid); return listCategories().find((category) => category.id === id); }
-function updateCategory(id, data) { const current = database.prepare('SELECT imagen_url AS image FROM categorias_producto WHERE id = ? AND activo = 1').get(id); if (!current) return null; const image = replaceMediaImage(current.image, data.image, 'categories'); const result = database.prepare('UPDATE categorias_producto SET nombre = ?, descripcion = ?, id_categoria_padre = NULL, imagen_url = ? WHERE id = ? AND activo = 1').run(data.name, data.description || null, image, id); return result.changes ? listCategories().find((category) => category.id === Number(id)) : null; }
-function deleteCategory(id) { if (database.prepare('SELECT id FROM productos WHERE id_categoria = ? AND activo = 1 LIMIT 1').get(id)) throw new Error('No puedes eliminar una categoría que tiene productos asociados. Reasigna o elimina primero sus productos.'); const current = database.prepare('SELECT imagen_url AS image FROM categorias_producto WHERE id = ? AND activo = 1').get(id); const result = database.prepare('UPDATE categorias_producto SET activo = 0 WHERE id = ? AND activo = 1').run(id); if (result.changes) deleteMediaImage(current?.image); return result.changes > 0; }
+function createCategory(data, actor) {
+  const existing = database.prepare('SELECT id, activo, imagen_url AS image FROM categorias_producto WHERE nombre = ? COLLATE NOCASE').get(data.name);
+  if (existing?.activo) throw new Error('Ya existe una categoría activa con ese nombre.');
+  if (existing) {
+    const image = data.image ? replaceMediaImage(existing.image, data.image, 'categories') : existing.image;
+    database.exec('BEGIN');
+    try {
+      database.prepare('UPDATE categorias_producto SET nombre = ?, descripcion = ?, imagen_url = ?, activo = 1 WHERE id = ? AND activo = 0').run(data.name, data.description || null, image, existing.id);
+      recordAuditEvent(actor, 'categoria', existing.id, 'reactivado', ['name', 'description', 'image', 'active']);
+      database.exec('COMMIT');
+    } catch (error) {
+      database.exec('ROLLBACK');
+      throw error;
+    }
+    const category = listCategories().find((item) => item.id === existing.id);
+    return { ...category, reactivated: true };
+  }
+  const image = saveMediaImage(data.image, 'categories');
+  database.exec('BEGIN');
+  let id;
+  try {
+    id = Number(database.prepare('INSERT INTO categorias_producto (nombre, descripcion, id_categoria_padre, imagen_url) VALUES (?, ?, NULL, ?)').run(data.name, data.description || null, image).lastInsertRowid);
+    recordAuditEvent(actor, 'categoria', id, 'creado', ['name', 'description', 'image']);
+    database.exec('COMMIT');
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+  return listCategories().find((category) => category.id === id);
+}
+function reactivateCategory(id, actor) {
+  database.exec('BEGIN');
+  try {
+    const result = database.prepare('UPDATE categorias_producto SET activo = 1 WHERE id = ? AND activo = 0').run(id);
+    if (!result.changes) { database.exec('COMMIT'); return null; }
+    recordAuditEvent(actor, 'categoria', id, 'reactivado', ['active']);
+    database.exec('COMMIT');
+    return listCategories().find((category) => category.id === Number(id)) || null;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
+function updateCategory(id, data, actor) {
+  const current = database.prepare('SELECT nombre AS name, descripcion AS description, imagen_url AS image FROM categorias_producto WHERE id = ? AND activo = 1').get(id);
+  if (!current) return null;
+  const image = replaceMediaImage(current.image, data.image, 'categories');
+  const next = { name: data.name, description: data.description || null, image };
+  const fields = Object.keys(next).filter((field) => String(current[field] || '') !== String(next[field] || ''));
+  database.exec('BEGIN');
+  try {
+    const result = database.prepare('UPDATE categorias_producto SET nombre = ?, descripcion = ?, id_categoria_padre = NULL, imagen_url = ? WHERE id = ? AND activo = 1').run(data.name, data.description || null, image, id);
+    if (result.changes && fields.length) recordAuditEvent(actor, 'categoria', id, 'modificado', fields);
+    database.exec('COMMIT');
+    return result.changes ? listCategories().find((category) => category.id === Number(id)) : null;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
+function deleteCategory(id, actor) {
+  if (database.prepare('SELECT id FROM productos WHERE id_categoria = ? AND activo = 1 LIMIT 1').get(id)) throw new Error('No puedes eliminar una categoría que tiene productos asociados. Reasigna o elimina primero sus productos.');
+  database.exec('BEGIN');
+  try {
+    const result = database.prepare('UPDATE categorias_producto SET activo = 0 WHERE id = ? AND activo = 1').run(id);
+    if (result.changes) recordAuditEvent(actor, 'categoria', id, 'desactivado', ['active']);
+    database.exec('COMMIT');
+    return result.changes > 0;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
 function listProducts() { return database.prepare('SELECT p.id, p.codigo, p.nombre AS name, p.id_categoria AS categoryId, c.nombre AS category, c.id_categoria_padre AS parentCategoryId, cp.nombre AS parentCategory, p.descripcion AS description, p.imagen_url AS image, COALESCE(um.abreviatura, \'UND\') AS unit FROM productos p LEFT JOIN categorias_producto c ON c.id = p.id_categoria LEFT JOIN categorias_producto cp ON cp.id = c.id_categoria_padre LEFT JOIN unidades_medida um ON um.id = p.id_unidad_medida WHERE p.activo = 1 ORDER BY p.id').all().map((item) => ({ ...item, image: publicImageUrl(item.image) })); }
+function listInactiveProducts() { return database.prepare('SELECT p.id, p.codigo, p.nombre AS name, p.id_categoria AS categoryId, c.nombre AS category, c.id_categoria_padre AS parentCategoryId, cp.nombre AS parentCategory, p.descripcion AS description, p.imagen_url AS image, COALESCE(um.abreviatura, \'UND\') AS unit FROM productos p LEFT JOIN categorias_producto c ON c.id = p.id_categoria LEFT JOIN categorias_producto cp ON cp.id = c.id_categoria_padre LEFT JOIN unidades_medida um ON um.id = p.id_unidad_medida WHERE p.activo = 0 ORDER BY p.id DESC').all().map((item) => ({ ...item, image: publicImageUrl(item.image) })); }
 // Registra un producto nuevo con su categoría e imagen.
-function createProduct(data) { const categoryId = Number(data.categoryId); if (!getCategory(categoryId)) throw new Error('Selecciona una categoría válida.'); const unitId = data.unit ? getUnitByAbbreviation(data.unit) : getDefaultUnit(); const image = parseDataImage(data.image) || isMediaReference(data.image) ? saveMediaImage(data.image, 'products') : (data.image || '📦'); const id = Number(database.prepare('INSERT INTO productos (codigo, nombre, descripcion, id_categoria, id_unidad_medida, imagen_url) VALUES (?, ?, ?, ?, ?, ?)').run(nextCode('PRD', 'productos'), data.name, data.description, categoryId, unitId, image).lastInsertRowid); return listProducts().find((product) => product.id === id); }
-function updateProduct(id, data) { const categoryId = Number(data.categoryId); if (!getCategory(categoryId)) throw new Error('Selecciona una categoría válida.'); const unitId = data.unit ? getUnitByAbbreviation(data.unit) : getDefaultUnit(); const current = database.prepare('SELECT imagen_url AS image FROM productos WHERE id = ? AND activo = 1').get(id); if (!current) return null; const image = parseDataImage(data.image) || isMediaReference(data.image) ? replaceMediaImage(current.image, data.image, 'products') : (data.image || '📦'); const result = database.prepare("UPDATE productos SET nombre = ?, descripcion = ?, id_categoria = ?, id_unidad_medida = ?, imagen_url = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ? AND activo = 1").run(data.name, data.description, categoryId, unitId, image, id); if (image !== current.image && !isMediaReference(data.image)) deleteMediaImage(current.image); return result.changes ? listProducts().find((product) => product.id === Number(id)) : null; }
-function deleteProduct(id) { const current = database.prepare('SELECT imagen_url AS image FROM productos WHERE id = ? AND activo = 1').get(id); const result = database.prepare('UPDATE productos SET activo = 0, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?').run(id); if (result.changes) deleteMediaImage(current?.image); return result.changes > 0; }
+function createProduct(data, actor) {
+  const categoryId = Number(data.categoryId);
+  if (!getCategory(categoryId)) throw new Error('Selecciona una categoría válida.');
+  const unitId = data.unit ? getUnitByAbbreviation(data.unit) : getDefaultUnit();
+  const image = parseDataImage(data.image) || isMediaReference(data.image) ? saveMediaImage(data.image, 'products') : (data.image || '📦');
+  database.exec('BEGIN');
+  let id;
+  try {
+    id = Number(database.prepare('INSERT INTO productos (codigo, nombre, descripcion, id_categoria, id_unidad_medida, imagen_url) VALUES (?, ?, ?, ?, ?, ?)').run(nextCode('PRD', 'productos'), data.name, data.description, categoryId, unitId, image).lastInsertRowid);
+    recordAuditEvent(actor, 'producto', id, 'creado', ['name', 'description', 'categoryId', 'unit', 'image']);
+    database.exec('COMMIT');
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+  return listProducts().find((product) => product.id === id);
+}
+function updateProduct(id, data, actor) {
+  const categoryId = Number(data.categoryId);
+  if (!getCategory(categoryId)) throw new Error('Selecciona una categoría válida.');
+  const unitId = data.unit ? getUnitByAbbreviation(data.unit) : getDefaultUnit();
+  const current = database.prepare('SELECT nombre AS name, descripcion AS description, id_categoria AS categoryId, id_unidad_medida AS unitId, imagen_url AS image FROM productos WHERE id = ? AND activo = 1').get(id);
+  if (!current) return null;
+  const image = parseDataImage(data.image) || isMediaReference(data.image) ? replaceMediaImage(current.image, data.image, 'products') : (data.image || '📦');
+  const next = { name: data.name, description: data.description, categoryId, unitId, image };
+  const fields = Object.keys(next).filter((field) => String(current[field] || '') !== String(next[field] || ''));
+  database.exec('BEGIN');
+  let result;
+  try {
+    result = database.prepare("UPDATE productos SET nombre = ?, descripcion = ?, id_categoria = ?, id_unidad_medida = ?, imagen_url = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ? AND activo = 1").run(data.name, data.description, categoryId, unitId, image, id);
+    if (result.changes && fields.length) recordAuditEvent(actor, 'producto', id, 'modificado', fields);
+    database.exec('COMMIT');
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+  if (image !== current.image && !isMediaReference(data.image)) deleteMediaImage(current.image);
+  return result.changes ? listProducts().find((product) => product.id === Number(id)) : null;
+}
+function deleteProduct(id, actor) {
+  database.exec('BEGIN');
+  try {
+    const result = database.prepare('UPDATE productos SET activo = 0, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ? AND activo = 1').run(id);
+    if (result.changes) recordAuditEvent(actor, 'producto', id, 'desactivado', ['active']);
+    database.exec('COMMIT');
+    return result.changes > 0;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
+function reactivateProduct(id, actor) {
+  const product = database.prepare('SELECT id, id_categoria AS categoryId FROM productos WHERE id = ? AND activo = 0').get(id);
+  if (!product) return null;
+  if (!product.categoryId) throw new Error('El producto no tiene una categoría asociada; asígnale una antes de activarlo.');
+  const category = database.prepare('SELECT activo FROM categorias_producto WHERE id = ?').get(product.categoryId);
+  if (!category) throw new Error('El producto no tiene una categoría asociada; asígnale una antes de activarlo.');
+  if (!category.activo) throw new Error('La categoría del producto está inactiva, debes activarla primero.');
+  database.exec('BEGIN');
+  try {
+    const result = database.prepare('UPDATE productos SET activo = 1, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ? AND activo = 0').run(id);
+    if (!result.changes) { database.exec('COMMIT'); return null; }
+    recordAuditEvent(actor, 'producto', id, 'reactivado', ['active']);
+    database.exec('COMMIT');
+    return listProducts().find((item) => item.id === Number(id)) || null;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
 const cvRoot = path.join(mediaRoot, 'cvs');
 function cleanFileName(value) { return path.basename(String(value || 'cv.pdf')).replace(/[\\/:*?"<>|]/g, '_').slice(0, 150) || 'cv.pdf'; }
 // Consulta las postulaciones laborales recibidas.
@@ -385,10 +665,10 @@ function updateJobApplication(id, data) { if (database.prepare('SELECT id FROM p
 function deleteJobApplication(id) { const application = database.prepare('SELECT archivo_cv AS fileName FROM postulaciones_laborales WHERE id = ?').get(id); if (!application) return false; const result = database.prepare('DELETE FROM postulaciones_laborales WHERE id = ?').run(id); if (result.changes) fs.rmSync(path.join(cvRoot, application.fileName), { force: true }); return result.changes > 0; }
 function getJobApplicationCv(id) { const application = database.prepare('SELECT archivo_cv AS fileName, nombre_original_cv AS originalName FROM postulaciones_laborales WHERE id = ?').get(id); if (!application || !/^cv-[a-f0-9-]+\.pdf$/.test(application.fileName)) return null; const filePath = path.join(cvRoot, application.fileName); return fs.existsSync(filePath) ? { path: filePath, name: cleanFileName(application.originalName) } : null; }
 // Registra la cotización con los productos solicitados.
-function createQuote(data) { const customerId = getOrCreateCustomer(data.name, data.email, data.phone); database.exec('BEGIN'); try { const id = Number(database.prepare('INSERT INTO cotizaciones (codigo, id_cliente, observaciones) VALUES (?, ?, ?)').run(nextCode('COT', 'cotizaciones'), customerId, data.message || '').lastInsertRowid); replaceQuoteItems(id, data); database.exec('COMMIT'); return listQuotes().find((quote) => quote.id === id); } catch (error) { database.exec('ROLLBACK'); throw error; } }
+function createQuote(data) { const customerId = getOrCreateCustomer(data.name, data.email, data.phone); database.exec('BEGIN'); try { const id = Number(database.prepare('INSERT INTO cotizaciones (codigo, id_cliente, observaciones) VALUES (?, ?, ?)').run(nextCode('SOL', 'cotizaciones', 5), customerId, data.message || '').lastInsertRowid); replaceQuoteItems(id, data); database.exec('COMMIT'); return listQuotes().find((quote) => quote.id === id); } catch (error) { database.exec('ROLLBACK'); throw error; } }
 function listQuotes() { return database.prepare("SELECT c.id, c.id_cliente AS clientId, c.codigo AS code, c.estado AS status, cl.nombre_contacto AS name, cl.correo AS email, cl.telefono AS phone, c.observaciones AS message, (SELECT p.codigo FROM pedidos p WHERE p.id_cotizacion = c.id LIMIT 1) AS orderCode, c.fecha_creacion AS createdAt FROM cotizaciones c JOIN clientes cl ON cl.id = c.id_cliente ORDER BY c.id DESC").all().map((quote) => { const items = listQuoteItems(quote.id); return { ...quote, items, product: items.map((item) => item.product).join(', ') }; }); }
 // Convierte una cotización en pedido y conserva sus productos.
-function createOrderFromQuote(quoteId, data) { const quote = database.prepare('SELECT id, codigo, id_cliente FROM cotizaciones WHERE id = ?').get(quoteId); if (!quote) throw new Error('Cotización no encontrada.'); const existing = database.prepare('SELECT codigo FROM pedidos WHERE id_cotizacion = ?').get(quoteId); if (existing) throw new Error(`Esta cotización ya está asociada al pedido ${existing.codigo}.`); const items = normalizeItems(data); database.exec('BEGIN'); try { const orderId = Number(database.prepare("INSERT INTO pedidos (codigo, id_cliente, id_cotizacion, estado, fecha_estimada_entrega) VALUES (?, ?, ?, 'Pedido en curso', ?)").run(nextCode('PED', 'pedidos'), quote.id_cliente, quote.id, data.estimatedDeliveryDate).lastInsertRowid); const insert = database.prepare('INSERT INTO detalle_pedidos (id_pedido, id_producto, descripcion_producto, cantidad, precio_unitario, id_unidad_medida) VALUES (?, ?, ?, ?, ?, ?)'); items.forEach((item) => insert.run(orderId, item.product.id, item.product.nombre, item.quantity, item.price, item.unitId)); database.prepare("INSERT INTO historial_estados_pedido (id_pedido, estado, comentario) VALUES (?, 'Pedido en curso', 'Pedido creado desde cotización')").run(orderId); database.exec('COMMIT'); return getOrderById(orderId); } catch (error) { database.exec('ROLLBACK'); throw error; } }
+function createOrderFromQuote(quoteId, data) { const quote = database.prepare('SELECT id, codigo, id_cliente FROM cotizaciones WHERE id = ?').get(quoteId); if (!quote) throw new Error('Solicitud de Pedido no encontrada.'); const existing = database.prepare('SELECT codigo FROM pedidos WHERE id_cotizacion = ?').get(quoteId); if (existing) throw new Error(`Esta Solicitud de Pedido ya está asociada al pedido ${existing.codigo}.`); const items = normalizeItems(data); database.exec('BEGIN'); try { const orderId = Number(database.prepare("INSERT INTO pedidos (codigo, id_cliente, id_cotizacion, estado, fecha_estimada_entrega) VALUES (?, ?, ?, 'Pedido en curso', ?)").run(nextCode('PED', 'pedidos'), quote.id_cliente, quote.id, data.estimatedDeliveryDate).lastInsertRowid); const insert = database.prepare('INSERT INTO detalle_pedidos (id_pedido, id_producto, descripcion_producto, cantidad, precio_unitario, id_unidad_medida) VALUES (?, ?, ?, ?, ?, ?)'); items.forEach((item) => insert.run(orderId, item.product.id, item.product.nombre, item.quantity, item.price, item.unitId)); database.prepare("INSERT INTO historial_estados_pedido (id_pedido, estado, comentario) VALUES (?, 'Pedido en curso', 'Pedido creado desde cotización')").run(orderId); database.exec('COMMIT'); return getOrderById(orderId); } catch (error) { database.exec('ROLLBACK'); throw error; } }
 function replaceOrderItems(orderId, data) { const items = normalizeItems(data); database.prepare('DELETE FROM detalle_pedidos WHERE id_pedido = ?').run(orderId); const insert = database.prepare('INSERT INTO detalle_pedidos (id_pedido, id_producto, descripcion_producto, cantidad, precio_unitario, id_unidad_medida) VALUES (?, ?, ?, ?, ?, ?)'); items.forEach((item) => insert.run(orderId, item.product.id, item.product.nombre, item.quantity, item.price, item.unitId)); }
 function updateOrderItems(code, data) { const order = database.prepare('SELECT id FROM pedidos WHERE codigo = ?').get(code); if (!order) return null; database.exec('BEGIN'); try { replaceOrderItems(order.id, data); database.exec('COMMIT'); } catch (error) { database.exec('ROLLBACK'); throw error; } return getOrderById(order.id); }
 function listOrders() { return database.prepare("SELECT p.id, p.id_cliente AS clientId, p.codigo AS code, cl.nombre_contacto AS customer, cl.correo AS customerEmail, cl.telefono AS customerPhone, p.estado AS status, p.fecha_creacion AS createdAt, p.fecha_estimada_entrega AS estimatedDeliveryDate, c.codigo AS quoteCode, p.fecha_creacion AS updatedAt FROM pedidos p JOIN clientes cl ON cl.id = p.id_cliente LEFT JOIN cotizaciones c ON c.id = p.id_cotizacion ORDER BY p.id DESC").all().map((order) => { const items = listOrderItems(order.id); return { ...order, items, product: items.map((item) => item.product).join(', ') }; }); }
@@ -412,7 +692,7 @@ function getAnalyticsSnapshot() {
     quotesByStatus: distribution('SELECT estado AS label, COUNT(*) AS value FROM cotizaciones GROUP BY estado ORDER BY value DESC, label'),
     ordersByStatus: distribution('SELECT estado AS label, COUNT(*) AS value FROM pedidos GROUP BY estado ORDER BY value DESC, label'),
     quotesByProduct: distribution("SELECT dc.descripcion_producto AS label, COUNT(*) AS value FROM detalle_cotizaciones dc JOIN cotizaciones c ON c.id = dc.id_cotizacion GROUP BY dc.descripcion_producto ORDER BY value DESC, label LIMIT 8"),
-    monthlyGrowth: distribution("SELECT strftime('%Y-%m', fecha_creacion) AS month, 'Cotizaciones' AS label, COUNT(*) AS value FROM cotizaciones WHERE fecha_creacion >= date('now', '-5 months', 'start of month') GROUP BY month UNION ALL SELECT strftime('%Y-%m', fecha_creacion) AS month, 'Pedidos' AS label, COUNT(*) AS value FROM pedidos WHERE fecha_creacion >= date('now', '-5 months', 'start of month') GROUP BY month ORDER BY month, label"),
+    monthlyGrowth: distribution("SELECT strftime('%Y-%m', fecha_creacion) AS month, 'Solicitudes de Pedido' AS label, COUNT(*) AS value FROM cotizaciones WHERE fecha_creacion >= date('now', '-5 months', 'start of month') GROUP BY month UNION ALL SELECT strftime('%Y-%m', fecha_creacion) AS month, 'Pedidos' AS label, COUNT(*) AS value FROM pedidos WHERE fecha_creacion >= date('now', '-5 months', 'start of month') GROUP BY month ORDER BY month, label"),
   };
 }
 
@@ -423,4 +703,5 @@ removeDefaultBanners();
 initializeAttentionPoints();
 initializeEmailTemplates();
 migrateLegacyImages();
-module.exports = { listProducts, listCategories, listCatalogSummary, listCatalogProducts, getCategoryImage, getMediaFile: mediaFile, createCategory, updateCategory, deleteCategory, listUnits, createUnit, updateUnit, deleteUnit, getCompanySettings, getAboutSettings, getAboutSettingsAdmin, getAboutImage, updateAboutSettings, getPromotionalPopup, getPromotionalPopupAdmin, getPromotionalPopupImage, updatePromotionalPopup, deletePromotionalPopup, updateContactNumbers, updateSocialNetworks, updateExperienceKpis, updateEmailSignature, listEmailTemplates, getEmailTemplate, updateEmailTemplate, getKpis, listAdditionalKpis, createAdditionalKpi, deleteAdditionalKpi, listTimelineItems, createTimelineItem, updateTimelineItem, deleteTimelineItem, listPrivacyPolicySections, createPrivacyPolicySection, updatePrivacyPolicySection, deletePrivacyPolicySection, listBanners, getBannerImage, listBannersAdmin, createBanner, updateBanner, deleteBanner, listCommercialPartners, createCommercialPartner, updateCommercialPartner, deleteCommercialPartner, listAttentionPoints, createAttentionPoint, updateAttentionPoint, deleteAttentionPoint, createProduct, updateProduct, deleteProduct, listJobApplications, createJobApplication, updateJobApplication, deleteJobApplication, getJobApplicationCv, listClients, createClient, updateClient, deleteClient, createSalesUser, listSalesUsers, updateSalesUser, deleteSalesUser, authenticate, changeOwnPassword, getClientById, updateOwnClient, listQuotesByClient, updateOwnQuote, updateQuoteAdmin, listOrdersByClient, createQuote, listQuotes, createOrderFromQuote, updateOrderItems, listOrders, getAnalyticsSnapshot };
+module.exports = { listProducts, listCategories, listCatalogSummary, listCatalogProducts, getCategoryImage, getMediaFile: mediaFile, createCategory, updateCategory, deleteCategory, listUnits, createUnit, updateUnit, deleteUnit, getCompanySettings, getAboutSettings, getAboutSettingsAdmin, getAboutImage, updateAboutSettings, getPromotionalPopup, getPromotionalPopupAdmin, getPromotionalPopupImage, updatePromotionalPopup, deletePromotionalPopup, updateContactNumbers, updateSocialNetworks, updateExperienceKpis, updateEmailSignature, listEmailTemplates, getEmailTemplate, updateEmailTemplate, getKpis, listAdditionalKpis, createAdditionalKpi, deleteAdditionalKpi, listTimelineItems, createTimelineItem, updateTimelineItem, deleteTimelineItem, listPrivacyPolicySections, createPrivacyPolicySection, updatePrivacyPolicySection, deletePrivacyPolicySection, listBanners, getBannerImage, listBannersAdmin, createBanner, updateBanner, deleteBanner, listCommercialPartners, createCommercialPartner, updateCommercialPartner, deleteCommercialPartner, listAttentionPoints, createAttentionPoint, updateAttentionPoint, deleteAttentionPoint, createProduct, updateProduct, deleteProduct, listJobApplications, createJobApplication, updateJobApplication, deleteJobApplication, getJobApplicationCv, listClients, createClient, updateClient, deleteClient, createSalesUser, listSalesUsers, updateSalesUser, deleteSalesUser, authenticate, changeOwnPassword, getClientById, updateOwnClient, listQuotesByClient, updateOwnQuote, updateQuoteAdmin, listOrdersByClient, createQuote, listQuotes, createOrderFromQuote, updateOrderItems, listOrders, getAnalyticsSnapshot, listAuditEvents };
+Object.assign(module.exports, { listInactiveProducts, reactivateProduct, listInactiveCategories, reactivateCategory, listInactiveClients, reactivateClient, listInactiveSalesUsers, reactivateSalesUser });

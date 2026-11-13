@@ -49,7 +49,7 @@
     return `<colgroup>${widths.map((width) => `<col style="width:${width}px">`).join('')}</colgroup>`;
   }
 
-  function enableColumnResize(table, storageKey, widths, minimums) {
+  function enableColumnResize(table, storageKey, widths, minimums, defaults) {
     if (!table) return;
     const scroll = table.closest('.document-table-scroll');
     const columns = [...table.querySelectorAll('col')];
@@ -92,22 +92,39 @@
         resizeBy(index, event.key === 'ArrowLeft' ? -12 : 12);
       });
       handle.addEventListener('dblclick', () => {
-        widths[index] = table.classList.contains('document-master-table') ? masterColumnDefaults[index] : detailColumnDefaults[index];
+        widths[index] = defaults[index];
         applyWidths();
       });
     });
     applyWidths();
   }
 
+  function configureResizableTable(table, storageKey, defaults, minimums) {
+    if (!table) return;
+    const headers = [...table.querySelectorAll('thead th')];
+    if (headers.length !== defaults.length || defaults.length !== minimums.length) throw new Error('La configuración de columnas redimensionables no coincide con la tabla.');
+    let columns = table.querySelector('colgroup');
+    if (!columns) {
+      columns = document.createElement('colgroup');
+      table.prepend(columns);
+    }
+    columns.innerHTML = defaults.map(() => '<col>').join('');
+    headers.forEach((header, index) => {
+      if (!header.querySelector('.document-column-resizer')) header.innerHTML = resizableHeader(escapeHtml(header.textContent.trim()), index);
+    });
+    enableColumnResize(table, storageKey, savedColumnWidths(storageKey, defaults), minimums, defaults);
+  }
+
   function exportDocuments(documents, configuration, showCustomer, customerOf, emailOf, phoneOf) {
-    const type = configuration.exportName || (String(configuration.detailLabel || '').toLowerCase().includes('pedido') ? 'pedidos' : 'cotizaciones');
+    const type = configuration.exportName || (String(configuration.detailLabel || '').toLowerCase().startsWith('pedido') ? 'pedidos' : 'solicitudes-de-pedido');
+    const typeLabel = (record) => type === 'pedidos' ? 'Pedido' : String(record.code || '').startsWith('SOL-') ? 'Solicitud de Pedido' : 'Cotización histórica';
     const headers = ['Tipo', 'Código', 'Fecha', 'Estado'];
     if (showCustomer) headers.push('Contacto', 'Correo', 'Teléfono');
     headers.push('Producto', 'Cantidad', 'Unidad', 'Precio unitario', 'Subtotal', 'Total del documento', 'Observaciones', 'Entrega estimada', 'Documento de origen');
     const rows = documents.flatMap((document) => {
       const items = document.items?.length ? document.items : [{}];
       return items.map((item) => {
-        const row = [type === 'pedidos' ? 'Pedido' : 'Cotización', document.code, formatDate(document.createdAt), document.status || ''];
+        const row = [typeLabel(document), document.code, formatDate(document.createdAt), document.status || ''];
         if (showCustomer) row.push(customerOf(document), emailOf(document), phoneOf(document));
         row.push(item.product || '', item.quantity ?? '', item.unit || '', Number(item.price || 0).toFixed(2), Number((item.quantity || 0) * (item.price || 0)).toFixed(2), documentTotal(document).toFixed(2), document.message || '', document.estimatedDeliveryDate ? formatDate(document.estimatedDeliveryDate) : '', document.quoteCode || document.orderCode || '');
         return row;
@@ -153,6 +170,9 @@
       if (!filtered.some((document) => keyOf(document) === selectedKey)) selectedKey = filtered.length ? keyOf(filtered[0]) : '';
       container.dataset.selectedDocument = selectedKey;
       const selected = filtered.find((document) => keyOf(document) === selectedKey);
+      const selectedDetailLabel = selected && String(selected.code || '').startsWith('COT-')
+        ? (configuration.legacyDetailLabel || 'Cotización histórica seleccionada')
+        : (configuration.detailLabel || 'Registro seleccionado');
       const rows = filtered.map((document) => {
         const key = keyOf(document);
         const selectedClass = key === selectedKey ? ' is-selected' : '';
@@ -171,7 +191,7 @@
         showCustomer && phoneOf(selected) ? ['Teléfono', phoneOf(selected)] : null,
         ['Fecha', formatDate(selected.createdAt)],
         selected.estimatedDeliveryDate ? ['Entrega estimada', formatDate(selected.estimatedDeliveryDate)] : null,
-        selected.quoteCode ? ['Cotización de origen', selected.quoteCode] : null,
+        selected.quoteCode ? [String(selected.quoteCode).startsWith('SOL-') ? 'Solicitud de Pedido de origen' : 'Cotización histórica de origen', selected.quoteCode] : null,
         selected.orderCode ? ['Pedido asociado', selected.orderCode] : null
       ].filter(Boolean) : [];
       const items = selected ? (selected.items || []).map((item, index) => `<tr>
@@ -199,7 +219,7 @@
           </div>
           <aside class="document-detail" aria-live="polite">
             ${selected ? `<header class="document-detail-header">
-                <div><small>${escapeHtml(configuration.detailLabel || 'Registro seleccionado')}</small><strong>${escapeHtml(selected.code)}</strong></div>
+                <div><small>${escapeHtml(selectedDetailLabel)}</small><strong>${escapeHtml(selected.code)}</strong></div>
                 ${statusBadge(selected.status)}
               </header>
               <div class="document-detail-meta">${metadata.map(([label, value]) => `<span><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong></span>`).join('')}</div>
@@ -223,8 +243,8 @@
         search?.setSelectionRange(cursor, cursor);
       });
       container.querySelector('.document-export')?.addEventListener('click', () => exportDocuments(filtered, configuration, showCustomer, customerOf, emailOf, phoneOf));
-      enableColumnResize(container.querySelector('.document-master-table'), `document-columns:master:${tableKey}`, masterWidths, masterColumnMinimums);
-      enableColumnResize(container.querySelector('.document-detail-items table'), `document-columns:detail:${tableKey}`, detailWidths, detailColumnMinimums);
+      enableColumnResize(container.querySelector('.document-master-table'), `document-columns:master:${tableKey}`, masterWidths, masterColumnMinimums, masterColumnDefaults);
+      enableColumnResize(container.querySelector('.document-detail-items table'), `document-columns:detail:${tableKey}`, detailWidths, detailColumnMinimums, detailColumnDefaults);
       container.querySelectorAll('.document-master-row').forEach((row) => {
         const selectRow = () => { selectedKey = row.dataset.documentKey; draw(); };
         row.addEventListener('click', selectRow);
@@ -242,5 +262,5 @@
     return { redraw: draw };
   }
 
-  window.CostaGrandeDocumentTable = { render, escapeHtml, money, documentTotal, formatDate };
+  window.CostaGrandeDocumentTable = { render, escapeHtml, money, documentTotal, formatDate, configureResizableTable };
 }());

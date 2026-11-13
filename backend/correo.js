@@ -4,8 +4,8 @@ const nodemailer = require('nodemailer');
 const database = require('../base_de_datos/base_de_datos');
 
 const templateDefinitions = {
-  quote_sales: { title: 'Nueva cotización para ventas', variables: ['{{quote_code}}', '{{customer_name}}', '{{customer_email}}', '{{customer_phone}}', '{{product}}', '{{message}}', '{{company_name}}', '{{company_phone}}', '{{company_signature}}'] },
-  quote_customer: { title: 'Confirmación de cotización al cliente', variables: ['{{quote_code}}', '{{customer_name}}', '{{product}}', '{{company_name}}', '{{company_phone}}', '{{company_signature}}'] },
+  quote_sales: { title: 'Nueva Solicitud de Pedido para ventas', variables: ['{{quote_code}}', '{{customer_name}}', '{{customer_email}}', '{{customer_phone}}', '{{product}}', '{{message}}', '{{company_name}}', '{{company_phone}}', '{{company_signature}}'] },
+  quote_customer: { title: 'Confirmación de Solicitud de Pedido al cliente', variables: ['{{quote_code}}', '{{customer_name}}', '{{product}}', '{{company_name}}', '{{company_phone}}', '{{company_signature}}'] },
   order_created: { title: 'Pedido creado', variables: ['{{order_code}}', '{{customer_name}}', '{{product}}', '{{quantity}}', '{{unit}}', '{{estimated_delivery_date}}', '{{company_name}}', '{{company_phone}}', '{{company_signature}}'] },
   order_in_transit: { title: 'Pedido en camino', variables: ['{{order_code}}', '{{customer_name}}', '{{estimated_delivery_date}}', '{{company_name}}', '{{company_phone}}', '{{company_signature}}'] },
 };
@@ -85,7 +85,7 @@ async function sendEmail({ to, subject, text }) {
   try { return await transporter.sendMail({ from: configuration.from, to, subject, text }); } catch (error) { console.log(`No fue posible enviar el correo por SMTP: ${error.message}`); throw new Error('No fue posible enviar el correo por SMTP. Revisa el servidor, puerto, usuario, contraseña y acceso SSL/TLS.'); }
 }
 
-function exampleValues() { return { quote_code: 'COT-0001', order_code: 'PED-0001', customer_name: 'María Pérez', customer_email: 'maria@ejemplo.com', customer_phone: '987654321', product: 'Producto de ejemplo', message: 'Necesito información sobre disponibilidad.', quantity: '10', unit: 'caj', estimated_delivery_date: '15/09/2026' }; }
+function exampleValues() { return { quote_code: 'SOL-00001', order_code: 'PED-0001', customer_name: 'María Pérez', customer_email: 'maria@ejemplo.com', customer_phone: '987654321', product: 'Producto de ejemplo', message: 'Necesito información sobre disponibilidad.', quantity: '10', unit: 'caj', estimated_delivery_date: '15/09/2026' }; }
 // Envía un correo de prueba a la dirección configurada.
 async function sendTestEmail() { const configuration = getEmailConfiguration(); const status = getEmailConfigurationStatus(); if (!configuration.enabled) throw new Error('El módulo de correos está desactivado.'); if (!status.ready) throw new Error('Falta completar la configuración SMTP o el correo de prueba.'); await sendEmail({ to: configuration.recipient, subject: 'Prueba de correo — Costa Grande', text: 'La conexión funciona. Este correo confirma que Costa Grande puede enviar notificaciones mediante el servidor SMTP de cPanel.' }); }
 async function sendTemplateTest(type) { const configuration = getEmailConfiguration(); if (!getEmailConfigurationStatus().ready) throw new Error('Completa primero la configuración SMTP para enviar una prueba.'); await sendEmail({ to: configuration.recipient, ...renderTemplate(type, exampleValues()) }); }

@@ -50,6 +50,11 @@ test('normaliza usuarios y habilita cuentas para clientes existentes', () => {
     const clientId = Number(database.prepare('INSERT INTO clientes (nombre_contacto, correo, telefono) VALUES (?, ?, ?)').run('Cliente existente', 'cliente@prueba.test', '934567891').lastInsertRowid);
     database.prepare("INSERT INTO usuarios (id_cliente, correo, contrasena_hash, rol) VALUES (?, ?, ?, 'cliente')").run(clientId, 'correo-antiguo@prueba.test', hashPassword('Cliente123'));
     database.prepare('INSERT INTO usuarios_ventas (nombre, correo, codigo_usuario, telefono, numero_documento, contrasena_hash) VALUES (?, ?, ?, ?, ?, ?)').run('Vendedor existente', 'ventas@prueba.test', 'VEN-0042', '987654321', '12345678', hashPassword('Ventas1234'));
+    database.prepare('INSERT INTO plantillas_correo (tipo, asunto, cuerpo) VALUES (?, ?, ?)').run(
+      'quote_sales',
+      '[{{quote_code}}] Nueva cotización recibida',
+      'Nueva cotización {{quote_code}}\n\nCliente: {{customer_name}}\nCorreo: {{customer_email}}\nTeléfono: {{customer_phone}}\nProducto: {{product}}\nMensaje: {{message}}\n\nIngresa al panel de administración para atenderla.\n\n{{company_signature}}',
+    );
   } finally {
     database.close();
   }
@@ -59,6 +64,9 @@ test('normaliza usuarios y habilita cuentas para clientes existentes', () => {
     const path = require('node:path');
     const { DatabaseSync } = require('node:sqlite');
     const repository = require('./base_de_datos/base_de_datos');
+    const salesTemplate = repository.listEmailTemplates().find((template) => template.type === 'quote_sales');
+    assert.equal(salesTemplate.subject, '[{{quote_code}}] Nueva Solicitud de Pedido recibida');
+    assert.match(salesTemplate.body, /Nueva Solicitud de Pedido/);
     const migrated = repository.authenticate('ventas@prueba.test', 'Ventas1234');
     assert.equal(migrated.role, 'ventas');
     assert.equal(migrated.mustChangePassword, true);
@@ -71,6 +79,13 @@ test('normaliza usuarios y habilita cuentas para clientes existentes', () => {
     assert.equal(repository.authenticate('nueva@prueba.test', 'Temporal123').role, 'ventas');
     const product = repository.listProducts()[0];
     const quote = repository.createQuote({ name: 'Contacto prueba', email: 'contacto@prueba.test', phone: '923456789', product: product.name, quantity: 1, message: 'Prueba' });
+    assert.equal(quote.code, 'SOL-00001');
+    const quoteDatabase = new DatabaseSync(path.join(process.env.APP_DATA_DIR, 'mvp_catalogo.db'));
+    quoteDatabase.prepare('UPDATE cotizaciones SET codigo = ? WHERE id = ?').run('COT-0001', quote.id);
+    const nextRequest = repository.createQuote({ name: 'Contacto prueba', email: 'contacto@prueba.test', phone: '923456789', product: product.name, quantity: 1, message: 'Prueba nueva' });
+    assert.equal(nextRequest.code, 'SOL-00001');
+    assert.equal(quoteDatabase.prepare('SELECT codigo FROM cotizaciones WHERE id = ?').get(quote.id).codigo, 'COT-0001');
+    quoteDatabase.close();
     assert.equal(quote.phone, '923456789');
     const contact = repository.getClientById(quote.clientId);
     repository.updateClient(contact.id, { ...contact, temporaryPassword: 'Acceso1234' });

@@ -232,6 +232,19 @@ CREATE TABLE IF NOT EXISTS historial_estados_pedido (
   FOREIGN KEY (id_pedido) REFERENCES pedidos(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS registro_auditoria_administrativa (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  entidad TEXT NOT NULL CHECK (entidad IN ('cliente', 'usuario_ventas', 'producto', 'categoria')),
+  id_entidad INTEGER NOT NULL,
+  nombre_entidad TEXT NOT NULL DEFAULT '',
+  accion TEXT NOT NULL CHECK (accion IN ('creado', 'modificado', 'desactivado', 'reactivado')),
+  id_actor INTEGER NOT NULL,
+  correo_actor TEXT NOT NULL,
+  rol_actor TEXT NOT NULL,
+  campos_modificados TEXT NOT NULL DEFAULT '[]',
+  fecha TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Conserva los datos y la referencia al CV de cada postulación laboral.
 CREATE TABLE IF NOT EXISTS postulaciones_laborales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -254,3 +267,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS indice_usuarios_cliente_unico ON usuarios(id_c
 CREATE INDEX IF NOT EXISTS indice_perfiles_ventas_usuario ON perfiles_ventas(id_usuario);
 CREATE INDEX IF NOT EXISTS indice_pedidos_cliente ON pedidos(id_cliente);
 CREATE INDEX IF NOT EXISTS indice_historial_pedido ON historial_estados_pedido(id_pedido);
+CREATE INDEX IF NOT EXISTS indice_auditoria_fecha ON registro_auditoria_administrativa(fecha DESC, id DESC);

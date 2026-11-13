@@ -21,7 +21,7 @@ Primera versión local de la plataforma. No requiere cuentas externas ni AWS.
 3. Inicia la aplicación:
 
    ```powershell
-   node backend/server.js
+   node --env-file-if-exists=.env backend/server.js
    ```
 
 4. Abre `http://localhost:3000` en el navegador.
