@@ -1,5 +1,7 @@
 .env
 base_de_datos/*.db
+# Copias completas de la BD generadas al cambiar credenciales administrativas.
+base_de_datos/backups/
 base_de_datos/uploads/
 
 # Dependencias instaladas localmente y archivos temporales.

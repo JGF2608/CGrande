@@ -5,7 +5,7 @@
   "description": "Catálogo, cotizaciones y gestión comercial de Costa Grande.",
   "_comentarios": {
     "main": "Indica el archivo principal que inicia el servidor de la aplicación.",
-    "scripts": "Define los comandos para iniciar la aplicación y comprobar la sintaxis del servidor.",
+    "scripts": "Define el inicio, las comprobaciones, las pruebas y los comandos CLI para administrar cuentas.",
     "dependencies": "Instala Nodemailer para correo y pg para consultar productos del ERP PostgreSQL.",
     "engines": "Exige una versión de Node.js compatible con el módulo integrado node:sqlite."
   },
@@ -13,6 +13,8 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env backend/server.js",
     "check": "node --check backend/server.js",
+    "admin:create": "node scripts/admin-account.js create",
+    "admin:reset": "node scripts/admin-account.js reset",
     "test": "node --test"
   },
   "dependencies": {

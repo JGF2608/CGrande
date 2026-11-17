@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
+const { hashPassword, verifyPassword } = require('./passwords');
 const { sourceDirectory, dataDirectory, databasePath, uploadsDirectory } = require('./rutas_datos');
 
 const database = new DatabaseSync(databasePath);
@@ -292,11 +293,6 @@ function getOrCreateCustomer(name, email, phone) {
   return Number(database.prepare('INSERT INTO clientes (nombre_contacto, correo, telefono) VALUES (?, ?, ?)').run(name, email, phone || null).lastInsertRowid);
 }
 
-// Protege la contraseña antes de guardarla.
-function hashPassword(password) { const salt = crypto.randomBytes(16).toString('hex'); return `${salt}:${crypto.scryptSync(password, salt, 64).toString('hex')}`; }
-// Comprueba una contraseña frente al valor guardado.
-function verifyPassword(password, stored) { const [salt, storedHash] = String(stored).split(':'); if (!salt || !storedHash) return false; const derived = crypto.scryptSync(password, salt, 64).toString('hex'); return crypto.timingSafeEqual(Buffer.from(storedHash, 'hex'), Buffer.from(derived, 'hex')); }
-
 const clientFields = 'id, nombre_contacto AS name, correo AS email, telefono AS phone, razon_social AS company, tipo_documento AS documentType, numero_documento AS documentNumber, direccion AS address, departamento AS department, provincia AS province, distrito AS district';
 // Consulta los clientes registrados para el panel administrativo.
 function listClients() { return database.prepare(`SELECT ${clientFields}, EXISTS (SELECT 1 FROM usuarios u WHERE u.id_cliente = clientes.id AND u.rol = 'cliente' AND u.activo = 1) AS hasAccount FROM clientes WHERE activo = 1 ORDER BY id DESC`).all().map((client) => ({ ...client, hasAccount: Boolean(client.hasAccount) })); }
@@ -474,7 +470,7 @@ function updateOwnQuote(quoteId, clientId, data) { const quote = database.prepar
 function updateQuoteAdmin(quoteId, data) { const quote = database.prepare('SELECT id_cliente AS clientId FROM cotizaciones WHERE id = ?').get(quoteId); return quote ? updateOwnQuote(quoteId, quote.clientId, data) : null; }
 function listOrdersByClient(clientId) { return listOrders().filter((order) => order.clientId === Number(clientId)); }
 
-// Prepara los datos iniciales necesarios para usar el catálogo.
+// Prepara datos básicos del catálogo sin crear administradores con credenciales predeterminadas.
 function initializeData() {
   const unitId = getDefaultUnit();
   if (!database.prepare('SELECT id FROM productos LIMIT 1').get()) {
@@ -493,7 +489,6 @@ function initializeData() {
     database.prepare('INSERT INTO detalle_pedidos (id_pedido, id_producto, descripcion_producto, cantidad, precio_unitario, id_unidad_medida) VALUES (?, ?, ?, 1, 0, ?)').run(orderId, product.id, product.nombre, unitId);
     database.prepare("INSERT INTO historial_estados_pedido (id_pedido, estado, comentario) VALUES (?, 'Pedido en camino', 'Pedido inicial de prueba')").run(orderId);
   }
-  if (!database.prepare('SELECT id FROM usuarios WHERE correo = ?').get('administracion@costagrande.com')) database.prepare('INSERT INTO usuarios (correo, contrasena_hash, rol) VALUES (?, ?, ?)').run('administracion@costagrande.com', hashPassword('CGrande1509#'), 'administracion');
   const customer = database.prepare('SELECT id, correo FROM clientes WHERE correo = ?').get('cliente@ejemplo.com');
   if (customer && !database.prepare('SELECT id FROM usuarios WHERE correo = ?').get(customer.correo)) database.prepare('INSERT INTO usuarios (id_cliente, correo, contrasena_hash, rol) VALUES (?, ?, ?, ?)').run(customer.id, customer.correo, hashPassword('cliente123'), 'cliente');
 }

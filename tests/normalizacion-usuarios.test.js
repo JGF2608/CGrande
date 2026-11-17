@@ -74,6 +74,8 @@ test('normaliza usuarios y habilita cuentas para clientes existentes', () => {
     assert.equal(existing.userCode, 'VEN-0042');
     assert.equal(existing.phone, '987654321');
     assert.equal(repository.authenticate(' CLIENTE@PRUEBA.TEST ', 'Cliente123').role, 'cliente');
+    // Confirma que el inicio de la aplicación ya no crea el administrador con credenciales fijas.
+    assert.equal(repository.authenticate('administracion@costagrande.com', 'CGrande1509#'), null);
     const created = repository.createSalesUser({ name: 'Nueva vendedora', email: 'nueva@prueba.test', phone: '912345678', documentNumber: '87654321', temporaryPassword: 'Temporal123' });
     assert.equal(created.email, 'nueva@prueba.test');
     assert.equal(repository.authenticate('nueva@prueba.test', 'Temporal123').role, 'ventas');
